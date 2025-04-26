@@ -104,5 +104,4 @@ fun LekNaCzasApp(lekViewModel: LekViewModel = viewModel()) {
             }
         }
     }
-
-}}
+}
