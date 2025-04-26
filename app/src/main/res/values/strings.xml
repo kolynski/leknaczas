@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">leknaczas</string>
+    <string name="app_name">LekNaCzas</string>
+    <string name="add_medicine">Dodaj lek</string>
+    <string name="medicine_name">Nazwa leku</string>
+    <string name="add">Dodaj</string>
+    <string name="medicine_list">Lista leków</string>
+    <string name="taken">Wzięty</string>
+    <string name="not_taken">Nie wzięty</string>
 </resources>
