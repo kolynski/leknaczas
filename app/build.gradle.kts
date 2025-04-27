@@ -60,7 +60,6 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     
-    // Dodaj viewmodel dla compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     
     testImplementation(libs.junit)
