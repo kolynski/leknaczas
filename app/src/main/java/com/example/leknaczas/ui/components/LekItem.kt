@@ -13,7 +13,7 @@ import com.example.leknaczas.model.Lek
 @Composable
 fun LekItem(
     lek: Lek,
-    onStatusChanged: (Int) -> Unit,
+    onStatusChanged: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -34,7 +34,7 @@ fun LekItem(
             )
             
             Button(
-                onClick = { onStatusChanged(lek.id) },
+                onClick = { onStatusChanged() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (lek.wziety) 
                         MaterialTheme.colorScheme.primary 

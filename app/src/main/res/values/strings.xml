@@ -6,4 +6,10 @@
     <string name="medicine_list">Lista leków</string>
     <string name="taken">Wzięty</string>
     <string name="not_taken">Nie wzięty</string>
+    <string name="login">Zaloguj się</string>
+    <string name="register">Zarejestruj się</string>
+    <string name="logout">Wyloguj</string>
+    <string name="email">Email</string>
+    <string name="password">Hasło</string>
+    <string name="confirm_password">Potwierdź hasło</string>
 </resources>

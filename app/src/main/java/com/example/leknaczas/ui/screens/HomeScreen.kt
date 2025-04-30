@@ -1,31 +1,44 @@
-package com.example.leknaczas
+package com.example.leknaczas.ui.screens
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import com.example.leknaczas.navigation.AppNavigation
-import com.example.leknaczas.ui.theme.LeknaczasTheme
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            LeknaczasTheme {
-                AppNavigation()
-            }
-        }
-    }
-}
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.leknaczas.R
+import com.example.leknaczas.ui.components.LekItem
+import com.example.leknaczas.viewmodel.AuthViewModel
+import com.example.leknaczas.viewmodel.LekViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LekNaCzasApp(lekViewModel: LekViewModel = viewModel()) {
+fun HomeScreen(
+    lekViewModel: LekViewModel,
+    authViewModel: AuthViewModel,
+    onLogout: () -> Unit
+) {
+    val leki by lekViewModel.leki.collectAsStateWithLifecycle()
+    val isLoading by lekViewModel.isLoading.collectAsStateWithLifecycle()
+    
+    var nowyLekNazwa by remember { mutableStateOf("") }
+    
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(id = R.string.app_name)) }
+                title = { Text(stringResource(id = R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = {
+                        authViewModel.logout()
+                        onLogout()
+                    }) {
+                        Text("Wyloguj")
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -35,8 +48,6 @@ fun LekNaCzasApp(lekViewModel: LekViewModel = viewModel()) {
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            var nowyLekNazwa by remember { mutableStateOf("") }
-            
             // Formularz dodawania leku
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -83,12 +94,28 @@ fun LekNaCzasApp(lekViewModel: LekViewModel = viewModel()) {
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            LazyColumn {
-                items(lekViewModel.leki) { lek ->
-                    LekItem(
-                        lek = lek,
-                        onStatusChanged = { lekViewModel.toggleLekStatus(it) }
-                    )
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (leki.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Brak leków. Dodaj swój pierwszy lek.")
+                }
+            } else {
+                LazyColumn {
+                    items(leki) { lek ->
+                        LekItem(
+                            lek = lek,
+                            onStatusChanged = { lekViewModel.toggleLekStatus(lek) }
+                        )
+                    }
                 }
             }
         }
