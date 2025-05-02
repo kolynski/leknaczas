@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.leknaczas"
-    compileSdk = 35
+    compileSdk = 34  // Zmiana z 35 na 34
 
     defaultConfig {
         applicationId = "com.example.leknaczas"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 34  // Zmiana z 35 na 34
         versionCode = 1
         versionName = "1.0"
 
