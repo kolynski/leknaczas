@@ -1,5 +1,6 @@
 package com.example.leknaczas.repository
 
+import android.util.Log
 import com.example.leknaczas.model.Lek
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
@@ -9,23 +10,35 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class LekRepository {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+    private val firestore = try {
+        FirebaseFirestore.getInstance()
+    } catch (e: Exception) {
+        Log.e("LekRepository", "Error initializing Firestore", e)
+        null
+    }
+    
+    private val auth = try {
+        FirebaseAuth.getInstance()
+    } catch (e: Exception) {
+        Log.e("LekRepository", "Error initializing FirebaseAuth", e)
+        null
+    }
     
     private val userLekiCollection
-        get() = firestore.collection("users")
-            .document(auth.currentUser?.uid ?: "")
-            .collection("leki")
+        get() = firestore?.collection("users")
+            ?.document(auth?.currentUser?.uid ?: "")
+            ?.collection("leki")
     
     fun getLekiFlow(): Flow<List<Lek>> = callbackFlow {
-        if (auth.currentUser == null) {
+        if (auth?.currentUser == null || firestore == null || userLekiCollection == null) {
             trySend(emptyList())
             return@callbackFlow
         }
         
-        val listenerRegistration = userLekiCollection.addSnapshotListener { snapshot, error ->
+        val listenerRegistration = userLekiCollection?.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                Log.e("LekRepository", "Error fetching leki", error)
+                trySend(emptyList())
                 return@addSnapshotListener
             }
             
@@ -36,15 +49,34 @@ class LekRepository {
             trySend(leki)
         }
         
-        awaitClose { listenerRegistration.remove() }
+        awaitClose { 
+            listenerRegistration?.remove() 
+        }
     }
     
     suspend fun addLek(nazwa: String): String {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return ""
+        }
+        
         val lek = Lek(id = "", nazwa = nazwa, przyjety = false)
-        return userLekiCollection.add(lek).await().id
+        return try {
+            userLekiCollection?.add(lek)?.await()?.id ?: ""
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error adding lek", e)
+            ""
+        }
     }
     
     suspend fun updateLekStatus(lek: Lek) {
-        userLekiCollection.document(lek.id).update("przyjety", !lek.przyjety).await()
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+        
+        try {
+            userLekiCollection?.document(lek.id)?.update("przyjety", !lek.przyjety)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error updating lek status", e)
+        }
     }
 }
