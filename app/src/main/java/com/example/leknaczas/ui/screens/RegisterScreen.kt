@@ -32,88 +32,94 @@ fun RegisterScreen(
         }
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text(
-            text = "LekNaCzas - Rejestracja",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-        
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
-        
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Hasło") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
-        
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Potwierdź hasło") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            isError = password != confirmPassword && confirmPassword.isNotBlank()
-        )
-        
-        if (password != confirmPassword && confirmPassword.isNotBlank()) {
-            Text(
-                text = "Hasła nie są identyczne",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-        
-        if (loginState is LoginState.Error) {
-            Text(
-                text = (loginState as LoginState.Error).message,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-        
-        Button(
-            onClick = { authViewModel.signup(email, password) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = email.isNotBlank() && password.isNotBlank() && 
-                    password == confirmPassword && loginState !is LoginState.Loading
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            if (loginState is LoginState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
+            Text(
+                text = "LekNaCzas - Rejestracja",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+            
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
+            
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Hasło") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+            
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Potwierdź hasło") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                isError = password != confirmPassword && confirmPassword.isNotBlank()
+            )
+            
+            if (password != confirmPassword && confirmPassword.isNotBlank()) {
+                Text(
+                    text = "Hasła nie są identyczne",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-            } else {
-                Text("Zarejestruj się")
             }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        TextButton(onClick = onNavigateToLogin) {
-            Text("Masz już konto? Zaloguj się")
+            
+            if (loginState is LoginState.Error) {
+                Text(
+                    text = (loginState as LoginState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            
+            Button(
+                onClick = { authViewModel.signup(email, password) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = email.isNotBlank() && password.isNotBlank() && 
+                        password == confirmPassword && loginState !is LoginState.Loading
+            ) {
+                if (loginState is LoginState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Zarejestruj się")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            TextButton(onClick = onNavigateToLogin) {
+                Text("Masz już konto? Zaloguj się")
+            }
         }
     }
 }
