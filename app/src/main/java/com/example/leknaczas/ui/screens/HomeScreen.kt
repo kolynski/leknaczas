@@ -3,6 +3,8 @@ package com.example.leknaczas.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,11 +36,16 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(id = R.string.app_name)) },
                 actions = {
-                    IconButton(onClick = {
-                        authViewModel.logout()
-                        onLogout()
-                    }) {
-                        Text("Wyloguj")
+                    IconButton(
+                        onClick = {
+                            authViewModel.logout()
+                            onLogout()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = stringResource(id = R.string.logout)
+                        )
                     }
                 }
             )
