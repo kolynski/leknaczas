@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "123456789000",
-    "project_id": "leknaczas-app",
-    "storage_bucket": "leknaczas-app.appspot.com"
+    "project_number": "269151088337",
+    "project_id": "leknaczas",
+    "storage_bucket": "leknaczas.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789000:android:abcdef0123456789",
+        "mobilesdk_app_id": "1:269151088337:android:702f4011b0cc2dccf91ff0",
         "android_client_info": {
           "package_name": "com.example.leknaczas"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIza1234567890abcdefghijklmnopqrstuvwxyz"
+          "current_key": "AIzaSyBF4hIkxWxNEZY5MzFt9hkb_T74upJg8ec"
         }
       ],
       "services": {

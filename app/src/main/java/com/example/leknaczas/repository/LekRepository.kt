@@ -9,56 +9,57 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-class LekRepository {
+class LekRepository : ILekRepository {
     private val firestore = try {
         FirebaseFirestore.getInstance()
     } catch (e: Exception) {
         Log.e("LekRepository", "Error initializing Firestore", e)
         null
     }
-    
+
     private val auth = try {
         FirebaseAuth.getInstance()
     } catch (e: Exception) {
         Log.e("LekRepository", "Error initializing FirebaseAuth", e)
         null
     }
-    
+
     private val userLekiCollection
         get() = firestore?.collection("users")
             ?.document(auth?.currentUser?.uid ?: "")
             ?.collection("leki")
-    
-    fun getLekiFlow(): Flow<List<Lek>> = callbackFlow {
+
+    override fun getLekiFlow(): Flow<List<Lek>> = callbackFlow {
         if (auth?.currentUser == null || firestore == null || userLekiCollection == null) {
             trySend(emptyList())
+            awaitClose { /* nothing to clean up */ }
             return@callbackFlow
         }
-        
+
         val listenerRegistration = userLekiCollection?.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 Log.e("LekRepository", "Error fetching leki", error)
                 trySend(emptyList())
                 return@addSnapshotListener
             }
-            
+
             val leki = snapshot?.documents?.mapNotNull { doc ->
                 doc.toObject(Lek::class.java)?.copy(id = doc.id)
             } ?: emptyList()
-            
+
             trySend(leki)
         }
-        
-        awaitClose { 
-            listenerRegistration?.remove() 
+
+        awaitClose {
+            listenerRegistration?.remove()
         }
     }
-    
-    suspend fun addLek(nazwa: String): String {
+
+    override suspend fun addLek(nazwa: String): String {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return ""
         }
-        
+
         val lek = Lek(id = "", nazwa = nazwa, przyjety = false)
         return try {
             userLekiCollection?.add(lek)?.await()?.id ?: ""
@@ -67,12 +68,12 @@ class LekRepository {
             ""
         }
     }
-    
-    suspend fun updateLekStatus(lek: Lek) {
+
+    override suspend fun updateLekStatus(lek: Lek) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
-        
+
         try {
             userLekiCollection?.document(lek.id)?.update("przyjety", !lek.przyjety)?.await()
         } catch (e: Exception) {

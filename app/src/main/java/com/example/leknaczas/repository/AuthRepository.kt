@@ -5,7 +5,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.tasks.await
 
-class AuthRepository {
+class AuthRepository : IAuthRepository {
     private val firebaseAuth = try {
         FirebaseAuth.getInstance()
     } catch (e: Exception) {
@@ -13,14 +13,14 @@ class AuthRepository {
         null
     }
 
-    val currentUser: FirebaseUser?
+    override val currentUser: FirebaseUser?
         get() = firebaseAuth?.currentUser
 
-    suspend fun login(email: String, password: String): Result<FirebaseUser> {
+    override suspend fun login(email: String, password: String): Result<FirebaseUser> {
         if (firebaseAuth == null) {
             return Result.failure(Exception("Firebase Auth is not initialized"))
         }
-        
+
         return try {
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             authResult.user?.let {
@@ -32,11 +32,11 @@ class AuthRepository {
         }
     }
 
-    suspend fun signup(email: String, password: String): Result<FirebaseUser> {
+    override suspend fun signup(email: String, password: String): Result<FirebaseUser> {
         if (firebaseAuth == null) {
             return Result.failure(Exception("Firebase Auth is not initialized"))
         }
-        
+
         return try {
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
             authResult.user?.let {
@@ -48,11 +48,11 @@ class AuthRepository {
         }
     }
 
-    fun logout() {
+    override fun logout() {
         firebaseAuth?.signOut()
     }
 
-    fun isUserLoggedIn(): Boolean {
+    override fun isUserLoggedIn(): Boolean {
         return firebaseAuth?.currentUser != null
     }
 }
