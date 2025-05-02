@@ -21,7 +21,7 @@ fun AppNavigation(
     lekViewModel: LekViewModel = viewModel()
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
-    
+
     NavHost(
         navController = navController,
         startDestination = if (isLoggedIn) "home" else "login"
@@ -35,7 +35,7 @@ fun AppNavigation(
                 }}
             )
         }
-        
+
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
@@ -45,7 +45,7 @@ fun AppNavigation(
                 }}
             )
         }
-        
+
         composable("home") {
             HomeScreen(
                 lekViewModel = lekViewModel,
