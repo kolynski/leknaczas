@@ -26,6 +26,8 @@ fun HomeScreen(
     val isLoading by lekViewModel.isLoading.collectAsStateWithLifecycle()
     
     var nowyLekNazwa by remember { mutableStateOf("") }
+    var nowyLekDawka by remember { mutableStateOf("") }
+    var nowyLekCzestotliwosc by remember { mutableStateOf("") }
     
     Scaffold(
         topBar = {
@@ -73,12 +75,37 @@ fun HomeScreen(
                             .padding(bottom = 8.dp)
                     )
                     
+                    OutlinedTextField(
+                        value = nowyLekDawka,
+                        onValueChange = { nowyLekDawka = it },
+                        label = { Text(stringResource(R.string.medicine_dosage)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                    
+                    OutlinedTextField(
+                        value = nowyLekCzestotliwosc,
+                        onValueChange = { nowyLekCzestotliwosc = it },
+                        label = { Text(stringResource(R.string.medicine_frequency)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                    
                     Button(
                         onClick = {
-                            lekViewModel.dodajLek(nowyLekNazwa)
+                            lekViewModel.dodajLek(
+                                nazwa = nowyLekNazwa,
+                                dawka = nowyLekDawka,
+                                czestotliwosc = nowyLekCzestotliwosc
+                            )
                             nowyLekNazwa = ""
+                            nowyLekDawka = ""
+                            nowyLekCzestotliwosc = ""
                         },
-                        modifier = Modifier.align(Alignment.End)
+                        modifier = Modifier.align(Alignment.End),
+                        enabled = nowyLekNazwa.isNotBlank()
                     ) {
                         Text(stringResource(R.string.add))
                     }

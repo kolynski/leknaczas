@@ -69,6 +69,20 @@ class LekRepository : ILekRepository {
         }
     }
 
+    override suspend fun addLek(nazwa: String, dawka: String, czestotliwosc: String): String {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return ""
+        }
+
+        val lek = Lek(id = "", nazwa = nazwa, dawka = dawka, czestotliwosc = czestotliwosc, przyjety = false)
+        return try {
+            userLekiCollection?.add(lek)?.await()?.id ?: ""
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error adding lek", e)
+            ""
+        }
+    }
+
     override suspend fun updateLekStatus(lek: Lek) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return

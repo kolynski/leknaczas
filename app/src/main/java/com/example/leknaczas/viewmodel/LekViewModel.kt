@@ -32,10 +32,10 @@ class LekViewModel : ViewModel() {
         }
     }
     
-    fun dodajLek(nazwa: String, dawka: String = "", czestotliwosc: String = "") {
+    fun dodajLek(nazwa: String, dawka: String, czestotliwosc: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            lekRepository.addLek(nazwa)
+            lekRepository.addLek(nazwa, dawka, czestotliwosc)
             _isLoading.value = false
         }
     }

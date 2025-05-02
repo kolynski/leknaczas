@@ -2,6 +2,8 @@
     <string name="app_name">LekNaCzas</string>
     <string name="add_medicine">Dodaj lek</string>
     <string name="medicine_name">Nazwa leku</string>
+    <string name="medicine_dosage">Dawka leku</string>
+    <string name="medicine_frequency">Częstotliwość</string>
     <string name="add">Dodaj</string>
     <string name="medicine_list">Lista leków</string>
     <string name="taken">Wzięty</string>
