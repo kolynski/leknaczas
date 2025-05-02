@@ -40,11 +40,11 @@ class LekRepository {
     }
     
     suspend fun addLek(nazwa: String): String {
-        val lek = Lek(id = "", nazwa = nazwa, wziety = false)
+        val lek = Lek(id = "", nazwa = nazwa, przyjety = false)
         return userLekiCollection.add(lek).await().id
     }
     
     suspend fun updateLekStatus(lek: Lek) {
-        userLekiCollection.document(lek.id).update("wziety", !lek.wziety).await()
+        userLekiCollection.document(lek.id).update("przyjety", !lek.przyjety).await()
     }
 }
