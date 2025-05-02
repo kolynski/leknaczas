@@ -8,5 +8,6 @@ data class Lek(
     val id: String = "",
     val nazwa: String = "",
     val dawka: String = "",
-    val czestotliwosc: String = ""
+    val czestotliwosc: String = "",
+    val przyjety: Boolean = false
 )
