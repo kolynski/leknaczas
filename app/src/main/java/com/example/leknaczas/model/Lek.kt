@@ -7,5 +7,6 @@ import androidx.compose.runtime.setValue
 data class Lek(
     val id: String = "",
     val nazwa: String = "",
-    val wziety: Boolean = false
+    val dawka: String = "",
+    val czestotliwosc: String = ""
 )
