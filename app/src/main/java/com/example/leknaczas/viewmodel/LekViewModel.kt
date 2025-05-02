@@ -22,6 +22,11 @@ class LekViewModel : ViewModel() {
         loadLeki()
     }
     
+    // Dodajemy publiczną metodę do ponownego załadowania leków
+    fun refreshLeki() {
+        loadLeki()
+    }
+    
     private fun loadLeki() {
         viewModelScope.launch {
             _isLoading.value = true

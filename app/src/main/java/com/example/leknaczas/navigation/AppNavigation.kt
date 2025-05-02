@@ -1,6 +1,7 @@
 package com.example.leknaczas.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,6 +23,14 @@ fun AppNavigation(
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
+    // Dodajemy efekt, który będzie nasłuchiwał zmian w stanie logowania
+    LaunchedEffect(key1 = isLoggedIn) {
+        if (isLoggedIn) {
+            // Użytkownik właśnie się zalogował - odśwież listę leków
+            lekViewModel.refreshLeki()
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = if (isLoggedIn) "home" else "login"
@@ -30,9 +39,13 @@ fun AppNavigation(
             LoginScreen(
                 authViewModel = authViewModel,
                 onNavigateToRegister = { navController.navigate("register") },
-                onNavigateToHome = { navController.navigate("home") {
-                    popUpTo("login") { inclusive = true }
-                }}
+                onNavigateToHome = { 
+                    // Odśwież leki przed nawigacją do ekranu głównego
+                    lekViewModel.refreshLeki()
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -40,9 +53,13 @@ fun AppNavigation(
             RegisterScreen(
                 authViewModel = authViewModel,
                 onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToHome = { navController.navigate("home") {
-                    popUpTo("register") { inclusive = true }
-                }}
+                onNavigateToHome = {
+                    // Odśwież leki przed nawigacją do ekranu głównego
+                    lekViewModel.refreshLeki() 
+                    navController.navigate("home") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                }
             )
         }
 

@@ -25,18 +25,26 @@ class LekRepository : ILekRepository {
     }
 
     private val userLekiCollection
-        get() = firestore?.collection("users")
-            ?.document(auth?.currentUser?.uid ?: "")
-            ?.collection("leki")
+        get() = auth?.currentUser?.uid?.let { userId ->
+            firestore?.collection("users")?.document(userId)?.collection("leki")
+        }
 
     override fun getLekiFlow(): Flow<List<Lek>> = callbackFlow {
-        if (auth?.currentUser == null || firestore == null || userLekiCollection == null) {
+        if (auth?.currentUser == null || firestore == null) {
             trySend(emptyList())
             awaitClose { /* nothing to clean up */ }
             return@callbackFlow
         }
 
-        val listenerRegistration = userLekiCollection?.addSnapshotListener { snapshot, error ->
+        val userId = auth?.currentUser?.uid
+        if (userId == null) {
+            trySend(emptyList())
+            awaitClose { /* nothing to clean up */ }
+            return@callbackFlow
+        }
+
+        val collection = firestore?.collection("users")?.document(userId)?.collection("leki")
+        val listenerRegistration = collection?.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 Log.e("LekRepository", "Error fetching leki", error)
                 trySend(emptyList())
@@ -44,7 +52,12 @@ class LekRepository : ILekRepository {
             }
 
             val leki = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(Lek::class.java)?.copy(id = doc.id)
+                try {
+                    doc.toObject(Lek::class.java)?.copy(id = doc.id)
+                } catch (e: Exception) {
+                    Log.e("LekRepository", "Error converting document to Lek", e)
+                    null
+                }
             } ?: emptyList()
 
             trySend(leki)

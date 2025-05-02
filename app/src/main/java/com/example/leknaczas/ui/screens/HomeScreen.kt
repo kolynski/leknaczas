@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,11 +32,25 @@ fun HomeScreen(
     var nowyLekDawka by remember { mutableStateOf("") }
     var nowyLekCzestotliwosc by remember { mutableStateOf("") }
     
+    // Efekt uruchamiany przy pierwszym wyświetleniu tego ekranu
+    LaunchedEffect(Unit) {
+        lekViewModel.refreshLeki()
+    }
+    
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(id = R.string.app_name)) },
                 actions = {
+                    // Dodajemy przycisk odświeżania
+                    IconButton(
+                        onClick = { lekViewModel.refreshLeki() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Odśwież"
+                        )
+                    }
                     IconButton(
                         onClick = {
                             authViewModel.logout()
