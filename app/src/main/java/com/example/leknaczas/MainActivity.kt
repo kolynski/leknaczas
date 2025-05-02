@@ -18,11 +18,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    LeknaczasTheme {
-        Text(text = "LekNaCzas")
-    }
-}
