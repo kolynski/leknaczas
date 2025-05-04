@@ -23,7 +23,6 @@ fun AppNavigation(
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
-    // Dodajemy efekt, który będzie nasłuchiwał zmian w stanie logowania
     LaunchedEffect(key1 = isLoggedIn) {
         if (isLoggedIn) {
             // Użytkownik właśnie się zalogował - odśwież listę leków
@@ -40,7 +39,6 @@ fun AppNavigation(
                 authViewModel = authViewModel,
                 onNavigateToRegister = { navController.navigate("register") },
                 onNavigateToHome = { 
-                    // Odśwież leki przed nawigacją do ekranu głównego
                     lekViewModel.refreshLeki()
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
