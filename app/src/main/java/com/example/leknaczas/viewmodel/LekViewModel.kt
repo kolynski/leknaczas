@@ -38,10 +38,10 @@ class LekViewModel : ViewModel() {
         }
     }
     
-    fun dodajLek(nazwa: String, dawka: String, czestotliwosc: String, ilosc: String, jednostka: String) {
+    fun dodajLek(nazwa: String, czestotliwosc: String, ilosc: String, jednostka: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            lekRepository.addLek(nazwa, dawka, czestotliwosc, ilosc, jednostka)
+            lekRepository.addLek(nazwa, czestotliwosc, ilosc, jednostka)
             _isLoading.value = false
         }
     }
@@ -51,6 +51,12 @@ class LekViewModel : ViewModel() {
             // Aktualizujemy status oraz datę wzięcia leku
             val dataWziecia = if (!lek.przyjety) LocalDate.now().toString() else ""
             lekRepository.updateLekStatus(lek, dataWziecia)
+        }
+    }
+    
+    fun usunLek(lek: Lek) {
+        viewModelScope.launch {
+            lekRepository.deleteLek(lek.id)
         }
     }
 }
