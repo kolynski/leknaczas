@@ -83,11 +83,24 @@ class LekRepository : ILekRepository {
     }
 
     override suspend fun addLek(nazwa: String, dawka: String, czestotliwosc: String): String {
+        return addLek(nazwa, dawka, czestotliwosc, "", "")
+    }
+
+    override suspend fun addLek(nazwa: String, dawka: String, czestotliwosc: String, ilosc: String, jednostka: String): String {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return ""
         }
 
-        val lek = Lek(id = "", nazwa = nazwa, dawka = dawka, czestotliwosc = czestotliwosc, przyjety = false)
+        val lek = Lek(
+            id = "", 
+            nazwa = nazwa, 
+            dawka = dawka, 
+            czestotliwosc = czestotliwosc, 
+            ilosc = ilosc,
+            jednostka = jednostka,
+            przyjety = false
+        )
+        
         return try {
             userLekiCollection?.add(lek)?.await()?.id ?: ""
         } catch (e: Exception) {
@@ -97,12 +110,24 @@ class LekRepository : ILekRepository {
     }
 
     override suspend fun updateLekStatus(lek: Lek) {
+        updateLekStatus(lek, "")
+    }
+    
+    override suspend fun updateLekStatus(lek: Lek, dataWziecia: String) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
 
         try {
-            userLekiCollection?.document(lek.id)?.update("przyjety", !lek.przyjety)?.await()
+            val updates = hashMapOf<String, Any>(
+                "przyjety" to !lek.przyjety
+            )
+            
+            if (dataWziecia.isNotEmpty()) {
+                updates["dataWziecia"] = dataWziecia
+            }
+            
+            userLekiCollection?.document(lek.id)?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error updating lek status", e)
         }

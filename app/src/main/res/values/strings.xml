@@ -14,4 +14,7 @@
     <string name="email">Email</string>
     <string name="password">Hasło</string>
     <string name="confirm_password">Potwierdź hasło</string>
+    <string name="medicine_calendar">Kalendarz przyjmowania leków</string>
+    <string name="medicine_amount">Ilość</string>
+    <string name="medicine_unit">Jednostka</string>
 </resources>

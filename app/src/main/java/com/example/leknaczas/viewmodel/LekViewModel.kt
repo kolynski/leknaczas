@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class LekViewModel : ViewModel() {
     private val lekRepository = LekRepository()
@@ -37,17 +38,19 @@ class LekViewModel : ViewModel() {
         }
     }
     
-    fun dodajLek(nazwa: String, dawka: String, czestotliwosc: String) {
+    fun dodajLek(nazwa: String, dawka: String, czestotliwosc: String, ilosc: String, jednostka: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            lekRepository.addLek(nazwa, dawka, czestotliwosc)
+            lekRepository.addLek(nazwa, dawka, czestotliwosc, ilosc, jednostka)
             _isLoading.value = false
         }
     }
     
     fun toggleLekStatus(lek: Lek) {
         viewModelScope.launch {
-            lekRepository.updateLekStatus(lek)
+            // Aktualizujemy status oraz datę wzięcia leku
+            val dataWziecia = if (!lek.przyjety) LocalDate.now().toString() else ""
+            lekRepository.updateLekStatus(lek, dataWziecia)
         }
     }
 }

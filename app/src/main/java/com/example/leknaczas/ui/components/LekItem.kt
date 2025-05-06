@@ -29,7 +29,16 @@ fun LekItem(lek: Lek, onStatusChanged: (Lek) -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = lek.nazwa)
                 Text(text = "Dawka: ${lek.dawka}")
-                Text(text = "Częstotliwość: ${lek.czestotliwosc}")
+                
+                // Pokazuj częstotliwość
+                if (lek.czestotliwosc.isNotEmpty()) {
+                    Text(text = "Częstotliwość: ${lek.czestotliwosc}")
+                }
+                
+                // Pokazuj ilość i jednostkę, jeśli zostały podane
+                if (lek.ilosc.isNotEmpty() && lek.jednostka.isNotEmpty()) {
+                    Text(text = "Ilość: ${lek.ilosc} ${lek.jednostka}")
+                }
             }
             Checkbox(
                 checked = lek.przyjety,

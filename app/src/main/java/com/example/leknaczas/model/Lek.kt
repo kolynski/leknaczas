@@ -1,13 +1,12 @@
 package com.example.leknaczas.model
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-
 data class Lek(
     val id: String = "",
     val nazwa: String = "",
     val dawka: String = "",
     val czestotliwosc: String = "",
-    val przyjety: Boolean = false
+    val ilosc: String = "", // Nowe pole - ilość leku (np. 1 tabletka)
+    val jednostka: String = "", // Nowe pole - jednostka (np. tabletka, opakowanie)
+    val przyjety: Boolean = false,
+    val dataWziecia: String = "" // Data przyjęcia leku w formacie "yyyy-MM-dd"
 )
