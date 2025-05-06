@@ -83,6 +83,7 @@ dependencies {
     implementation("androidx.compose.material:material")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.foundation:foundation:1.7.0")
 
     // Lifecycle components
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
