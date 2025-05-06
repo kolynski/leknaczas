@@ -336,7 +336,8 @@ fun HomeScreen(
                                 items(leki) { lek ->
                                     LekItem(
                                         lek = lek,
-                                        onStatusChanged = { lekViewModel.toggleLekStatus(lek) }
+                                        onStatusChanged = { lekViewModel.toggleLekStatus(lek) },
+                                        onDelete = { lekViewModel.usunLek(lek) }
                                     )
                                 }
                             }

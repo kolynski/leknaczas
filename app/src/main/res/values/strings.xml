@@ -22,4 +22,5 @@
     <string name="swipe_right_hint">Przesuń w prawo, aby zobaczyć kalendarz</string>
     <string name="swipe_left_hint">Przesuń w lewo, aby wrócić do listy leków</string>
     <string name="no_medicines_calendar">Brak leków do wyświetlenia w kalendarzu</string>
+    <string name="delete_medicine">Usuń lek</string>
 </resources>
