@@ -35,7 +35,6 @@ fun HomeScreen(
     val isLoading by lekViewModel.isLoading.collectAsStateWithLifecycle()
     
     var nowyLekNazwa by remember { mutableStateOf("") }
-    var nowyLekDawka by remember { mutableStateOf("") }
     var nowyLekCzestotliwosc by remember { mutableStateOf("1 x dziennie") }
     var nowyLekIlosc by remember { mutableStateOf("1") }
     var nowyLekJednostka by remember { mutableStateOf("tabletka") }
@@ -163,15 +162,6 @@ fun HomeScreen(
                                         .padding(bottom = 8.dp)
                                 )
                                 
-                                OutlinedTextField(
-                                    value = nowyLekDawka,
-                                    onValueChange = { nowyLekDawka = it },
-                                    label = { Text(stringResource(R.string.medicine_dosage)) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 8.dp)
-                                )
-                                
                                 // Dropdown dla częstotliwości
                                 ExposedDropdownMenuBox(
                                     expanded = expandedCzestotliwosc,
@@ -287,13 +277,11 @@ fun HomeScreen(
                                     onClick = {
                                         lekViewModel.dodajLek(
                                             nazwa = nowyLekNazwa,
-                                            dawka = nowyLekDawka,
                                             czestotliwosc = nowyLekCzestotliwosc,
                                             ilosc = nowyLekIlosc,
                                             jednostka = nowyLekJednostka
                                         )
                                         nowyLekNazwa = ""
-                                        nowyLekDawka = ""
                                         nowyLekCzestotliwosc = "1 x dziennie"
                                         nowyLekIlosc = "1"
                                         nowyLekJednostka = "tabletka"
