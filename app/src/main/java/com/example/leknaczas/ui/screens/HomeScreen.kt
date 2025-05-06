@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
@@ -23,6 +22,7 @@ import com.example.leknaczas.ui.components.LekItem
 import com.example.leknaczas.ui.components.MedicineCalendar
 import com.example.leknaczas.viewmodel.AuthViewModel
 import com.example.leknaczas.viewmodel.LekViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -51,7 +51,9 @@ fun HomeScreen(
     
     // Inicjalizacja pagerState dla przesuwania ekranów w poziomie
     val pagerState = rememberPagerState(pageCount = { 2 })
-    val pagerScope = rememberCoroutineScope()
+    
+    // Tworzenie zakresu korutyny dla operacji asynchronicznych
+    val coroutineScope = rememberCoroutineScope()
     
     // Efekt uruchamiany przy pierwszym wyświetleniu tego ekranu
     LaunchedEffect(Unit) {
@@ -100,20 +102,20 @@ fun HomeScreen(
                     Tab(
                         selected = pagerState.currentPage == 0,
                         onClick = {
-                            pagerScope.launch {
+                            coroutineScope.launch {
                                 pagerState.animateScrollToPage(0)
                             }
                         },
-                        text = { Text("Leki") }
+                        text = { Text(stringResource(R.string.tab_medicines)) }
                     )
                     Tab(
                         selected = pagerState.currentPage == 1,
                         onClick = {
-                            pagerScope.launch {
+                            coroutineScope.launch {
                                 pagerState.animateScrollToPage(1)
                             }
                         },
-                        text = { Text("Kalendarz") }
+                        text = { Text(stringResource(R.string.tab_calendar)) }
                     )
                 }
             }
@@ -224,7 +226,7 @@ fun HomeScreen(
                                             value = nowyLekIlosc,
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("Ilość") },
+                                            label = { Text(stringResource(R.string.medicine_amount)) },
                                             trailingIcon = {
                                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedIlosc)
                                             },
@@ -257,7 +259,7 @@ fun HomeScreen(
                                             value = nowyLekJednostka,
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("Jednostka") },
+                                            label = { Text(stringResource(R.string.medicine_unit)) },
                                             trailingIcon = {
                                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedJednostka)
                                             },
@@ -342,7 +344,7 @@ fun HomeScreen(
                         
                         if (leki.isNotEmpty()) {
                             Text(
-                                text = "Przesuń w prawo, aby zobaczyć kalendarz",
+                                text = stringResource(R.string.swipe_right_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
@@ -363,7 +365,7 @@ fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Kalendarz przyjmowania leków",
+                            text = stringResource(R.string.medicine_calendar),
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
@@ -375,7 +377,7 @@ fun HomeScreen(
                         
                         if (leki.isEmpty()) {
                             Text(
-                                text = "Brak leków do wyświetlenia w kalendarzu",
+                                text = stringResource(R.string.no_medicines_calendar),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
@@ -386,7 +388,7 @@ fun HomeScreen(
                         }
                         
                         Text(
-                            text = "Przesuń w lewo, aby wrócić do listy leków",
+                            text = stringResource(R.string.swipe_left_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
