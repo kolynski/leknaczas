@@ -291,7 +291,7 @@ fun HomeScreen(
                                                 }
                                             }
                                         }
-                                    )
+                                    }
                                     
                                     Button(
                                         onClick = {
@@ -312,7 +312,7 @@ fun HomeScreen(
                                         Text(stringResource(R.string.add))
                                     }
                                 }
-                            )
+                            }
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
@@ -420,7 +420,7 @@ fun HomeScreen(
                                     .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
-                        )
+                        }
                         
                         // Pull-to-refresh indicator at the top center for calendar page too
                         PullRefreshIndicator(
