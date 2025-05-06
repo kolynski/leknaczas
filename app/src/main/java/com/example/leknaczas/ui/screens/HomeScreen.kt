@@ -257,7 +257,7 @@ fun HomeScreen(
                                                     )
                                                 }
                                             }
-                                        )
+                                        }
                                         
                                         // Dropdown dla jednostki
                                         ExposedDropdownMenuBox(
@@ -416,8 +416,8 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
-                                    .padding(top = 16.dp, bottom = 8.dp)
-                                    .fillMaxWidth(),
+                                        .padding(top = 16.dp, bottom = 8.dp)
+                                        .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
                         }
