@@ -167,4 +167,21 @@ class LekRepository : ILekRepository {
             Log.e("LekRepository", "Error deleting lek", e)
         }
     }
+
+    suspend fun markLekAsTaken(lekId: String, dataWziecia: String) {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+
+        try {
+            val updates = hashMapOf<String, Any>(
+                "przyjety" to true,
+                "dataWziecia" to dataWziecia
+            )
+            
+            userLekiCollection?.document(lekId)?.update(updates)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error marking lek as taken", e)
+        }
+    }
 }

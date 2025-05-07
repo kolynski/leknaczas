@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".LekNaCzasApp"
         android:allowBackup="true"
@@ -24,6 +26,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Register the BroadcastReceiver -->
+        <receiver
+            android:name=".notification.MedicationActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
