@@ -72,85 +72,85 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         lekViewModel.refreshLeki()
     }
-    
-    Scaffold(
-        topBar = {
-            Column {
-                CenterAlignedTopAppBar(
-                    title = { Text(stringResource(id = R.string.app_name)) },
-                    actions = {
-                        // Dodajemy przycisk odświeżania
-                        IconButton(
-                            onClick = { lekViewModel.refreshLeki() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Odśwież"
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                authViewModel.logout()
-                                onLogout()
+
+    // Wrap the entire Scaffold in a Box with pullRefresh modifier to enable pull-to-refresh globally
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pullRefresh(pullRefreshState)
+    ) {
+        Scaffold(
+            topBar = {
+                Column {
+                    CenterAlignedTopAppBar(
+                        title = { Text(stringResource(id = R.string.app_name)) },
+                        actions = {
+                            // Dodajemy przycisk odświeżania
+                            IconButton(
+                                onClick = { lekViewModel.refreshLeki() }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Odśwież"
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ExitToApp,
-                                contentDescription = stringResource(id = R.string.logout)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            IconButton(
+                                onClick = {
+                                    authViewModel.logout()
+                                    onLogout()
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
+                                    contentDescription = stringResource(id = R.string.logout)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                    
+                    // Tabs to switch between pages
+                    TabRow(
+                        selectedTabIndex = pagerState.currentPage,
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
-                
-                // Tabs to switch between pages
-                TabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Tab(
-                        selected = pagerState.currentPage == 0,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(0)
-                            }
-                        },
-                        text = { Text(stringResource(R.string.tab_medicines)) }
-                    )
-                    Tab(
-                        selected = pagerState.currentPage == 1,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(1)
-                            }
-                        },
-                        text = { Text(stringResource(R.string.tab_calendar)) }
-                    )
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            verticalAlignment = Alignment.Top
-        ) { page ->
-            when (page) {
-                // Page 0: Medicine List
-                0 -> {
-                    // Wrap everything in a Box with pullRefresh modifier to enable pull-to-refresh
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pullRefresh(pullRefreshState)
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     ) {
+                        Tab(
+                            selected = pagerState.currentPage == 0,
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            },
+                            text = { Text(stringResource(R.string.tab_medicines)) }
+                        )
+                        Tab(
+                            selected = pagerState.currentPage == 1,
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(1)
+                                }
+                            },
+                            text = { Text(stringResource(R.string.tab_calendar)) }
+                        )
+                    }
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { innerPadding ->
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                verticalAlignment = Alignment.Top
+            ) { page ->
+                when (page) {
+                    // Page 0: Medicine List
+                    0 -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -360,24 +360,10 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        
-                        // Pull-to-refresh indicator at the top center
-                        PullRefreshIndicator(
-                            refreshing = isLoading,
-                            state = pullRefreshState,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
                     }
-                }
-                
-                // Page 1: Calendar
-                1 -> {
-                    // Wrap the calendar page in a Box with pullRefresh modifier as well
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pullRefresh(pullRefreshState)
-                    ) {
+                    
+                    // Page 1: Calendar
+                    1 -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -416,21 +402,21 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
-                                        .padding(top = 16.dp, bottom = 8.dp)
-                                        .fillMaxWidth(),
+                                    .padding(top = 16.dp, bottom = 8.dp)
+                                    .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
                         }
-                        
-                        // Pull-to-refresh indicator at the top center for calendar page too
-                        PullRefreshIndicator(
-                            refreshing = isLoading,
-                            state = pullRefreshState,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
                     }
                 }
             }
         }
+        
+        // Pull-to-refresh indicator at the top center - now showing over the entire UI
+        PullRefreshIndicator(
+            refreshing = isLoading,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
