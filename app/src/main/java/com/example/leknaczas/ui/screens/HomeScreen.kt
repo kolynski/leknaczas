@@ -29,7 +29,7 @@ import com.example.leknaczas.ui.components.MedicineCalendar
 import com.example.leknaczas.ui.components.StreakCard
 import com.example.leknaczas.viewmodel.AuthViewModel
 import com.example.leknaczas.viewmodel.LekViewModel
-import com.example.leknaczas.service.NotificationService
+import com.example.leknaczas.notification.NotificationService
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -521,7 +521,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            )
+                            }
                             
                             // Motivational message based on streak
                             Card(
