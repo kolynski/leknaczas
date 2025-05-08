@@ -10,11 +10,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,6 +29,7 @@ import com.example.leknaczas.ui.components.MedicineCalendar
 import com.example.leknaczas.ui.components.StreakCard
 import com.example.leknaczas.viewmodel.AuthViewModel
 import com.example.leknaczas.viewmodel.LekViewModel
+import com.example.leknaczas.service.NotificationService
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -518,7 +521,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
+                            )
                             
                             // Motivational message based on streak
                             Card(
@@ -546,6 +549,68 @@ fun HomeScreen(
                                         textAlign = TextAlign.Center,
                                         color = MaterialTheme.colorScheme.primary
                                     )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Przycisk testowy do powiadomień
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Opcje testowe",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    
+                                    // Wyświetl tylko jeśli są jakieś leki
+                                    if (leki.isNotEmpty()) {
+                                        val context = LocalContext.current
+                                        
+                                        Button(
+                                            onClick = {
+                                                // Użyj pierwszego dostępnego leku do testowania powiadomienia
+                                                val testLek = leki.first()
+                                                val notificationService = NotificationService(context)
+                                                notificationService.showMedicationReminder(testLek)
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondary
+                                            )
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Notifications,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Testuj powiadomienie")
+                                            }
+                                        }
+                                    } else {
+                                        Text(
+                                            text = "Dodaj lek, aby testować powiadomienia",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
                                 }
                             }
                             
