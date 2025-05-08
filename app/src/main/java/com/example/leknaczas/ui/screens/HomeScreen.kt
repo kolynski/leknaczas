@@ -6,14 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,8 +34,7 @@ import java.time.temporal.ChronoUnit
 
 @OptIn(
     ExperimentalMaterial3Api::class, 
-    ExperimentalFoundationApi::class, 
-    ExperimentalMaterialApi::class
+    ExperimentalFoundationApi::class
 )
 @Composable
 fun HomeScreen(
@@ -54,12 +49,6 @@ fun HomeScreen(
     var nowyLekCzestotliwosc by remember { mutableStateOf("1 x dziennie") }
     var nowyLekIlosc by remember { mutableStateOf("1") }
     var nowyLekJednostka by remember { mutableStateOf("tabletka") }
-    
-    // Pull-to-refresh state
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = isLoading,
-        onRefresh = { lekViewModel.refreshLeki() }
-    )
     
     // Opcje dla wybieranych wartości
     val czestotliwosciOptions = listOf("1 x dziennie", "2 x dziennie", "3 x dziennie", "co drugi dzień", "raz w tygodniu")
@@ -84,89 +73,91 @@ fun HomeScreen(
     // Calculate streak information
     val (currentStreak, longestStreak, lastWeekAdherence) = calculateStreakInfo(leki)
 
-    // Wrap the entire Scaffold in a Box with pullRefresh modifier to enable pull-to-refresh globally
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pullRefresh(pullRefreshState)
-    ) {
-        Scaffold(
-            topBar = {
-                Column {
-                    CenterAlignedTopAppBar(
-                        title = { Text(stringResource(id = R.string.app_name)) },
-                        actions = {
-                            // Dodajemy przycisk odświeżania
-                            IconButton(
-                                onClick = { lekViewModel.refreshLeki() }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Odśwież"
-                                )
+    Scaffold(
+        topBar = {
+            Column {
+                CenterAlignedTopAppBar(
+                    title = { Text(stringResource(id = R.string.app_name)) },
+                    actions = {
+                        // Dodajemy przycisk odświeżania
+                        IconButton(
+                            onClick = { lekViewModel.refreshLeki() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Odśwież"
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                authViewModel.logout()
+                                onLogout()
                             }
-                            IconButton(
-                                onClick = {
-                                    authViewModel.logout()
-                                    onLogout()
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ExitToApp,
-                                    contentDescription = stringResource(id = R.string.logout)
-                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ExitToApp,
+                                contentDescription = stringResource(id = R.string.logout)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+                
+                // Tabs to switch between pages - now with 3 tabs
+                TabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Tab(
+                        selected = pagerState.currentPage == 0,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(0)
                             }
                         },
-                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        text = { Text(stringResource(R.string.tab_medicines)) }
                     )
-                    
-                    // Tabs to switch between pages - now with 3 tabs
-                    TabRow(
-                        selectedTabIndex = pagerState.currentPage,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Tab(
-                            selected = pagerState.currentPage == 0,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(0)
-                                }
-                            },
-                            text = { Text(stringResource(R.string.tab_medicines)) }
-                        )
-                        Tab(
-                            selected = pagerState.currentPage == 1,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(1)
-                                }
-                            },
-                            text = { Text(stringResource(R.string.tab_calendar)) }
-                        )
-                        Tab(
-                            selected = pagerState.currentPage == 2,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(2)
-                                }
-                            },
-                            text = { Text(stringResource(R.string.tab_streaks)) },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Default.LocalFireDepartment,
-                                    contentDescription = "Streak"
-                                )
+                    Tab(
+                        selected = pagerState.currentPage == 1,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(1)
                             }
-                        )
-                    }
+                        },
+                        text = { Text(stringResource(R.string.tab_calendar)) }
+                    )
+                    Tab(
+                        selected = pagerState.currentPage == 2,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(2)
+                            }
+                        },
+                        text = { Text(stringResource(R.string.tab_streaks)) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = "Streak"
+                            )
+                        }
+                    )
                 }
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { innerPadding ->
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -349,7 +340,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                             
-                            if (leki.isEmpty() && !isLoading) {
+                            if (leki.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -509,7 +500,7 @@ fun HomeScreen(
                                         )
                                         
                                         LinearProgressIndicator(
-                                            progress = lastWeekAdherence,  // Remove the curly braces
+                                            progress = lastWeekAdherence,
                                             modifier = Modifier
                                                 .align(Alignment.CenterVertically)
                                                 .height(12.dp)
@@ -577,13 +568,6 @@ fun HomeScreen(
                 }
             }
         }
-        
-        // Pull-to-refresh indicator at the top center - now showing over the entire UI
-        PullRefreshIndicator(
-            refreshing = isLoading,
-            state = pullRefreshState,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
     }
 }
 
