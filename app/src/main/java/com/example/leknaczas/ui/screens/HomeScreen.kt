@@ -138,7 +138,6 @@ fun HomeScreen(
                             }
                         },
                         text = { Text(stringResource(R.string.tab_streaks)) }
-                        // Icon removed as requested
                     )
                 }
             }
@@ -516,7 +515,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            )
+                            }
                             
                             // Motivational message based on streak
                             Card(
@@ -545,7 +544,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                            )
+                            }
                             
                             Spacer(modifier = Modifier.weight(1f))
                             
