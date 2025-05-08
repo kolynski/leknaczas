@@ -2,36 +2,36 @@ package com.example.leknaczas.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.NavigateBefore
+import androidx.compose.material.icons.filled.NavigateNext
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.leknaczas.model.Lek
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.NavigateBefore
-import androidx.compose.material.icons.filled.NavigateNext
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.platform.LocalDensity
-import java.time.DayOfWeek
 import java.util.*
 
 data class MedicineCalendarDay(
@@ -42,15 +42,13 @@ data class MedicineCalendarDay(
 
 data class MedicationScheduleInfo(
     val lek: Lek,
-    val status: MedicineStatus,
-    val isScheduledForDay: Boolean, // Indicates if the med should be taken this day based on frequency
-    val dayInCycle: Int? = null // Optional: Day number in a medication cycle
+    val status: MedicineStatus
 )
 
 enum class MedicineStatus {
     TAKEN,       // Wzięty (zielony)
     NOT_TAKEN,   // Nie wzięty (czerwony)
-    SCHEDULED,   // Zaplanowany do wzięcia (pomarańczowy)
+    SCHEDULED,   // Zaplanowany do wzięcia (niebieski)
     NONE         // Nie było leku tego dnia (szary)
 }
 
@@ -61,12 +59,15 @@ fun MedicineCalendar(
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = LocalDate.now()
+    var selectedDate by remember { mutableStateOf(today) }
     
     Card(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             // Calendar header with month name and navigation
             Row(
@@ -79,13 +80,15 @@ fun MedicineCalendar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.NavigateBefore,
-                        contentDescription = "Previous month"
+                        contentDescription = "Previous month",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 
                 Text(
                     text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 IconButton(
@@ -93,94 +96,109 @@ fun MedicineCalendar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.NavigateNext,
-                        contentDescription = "Next month"
+                        contentDescription = "Next month",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // Days of week header
-            Row(modifier = Modifier.fillMaxWidth()) {
-                val daysOfWeek = listOf("Pon", "Wt", "Śr", "Czw", "Pt", "Sb", "Nd")
-                daysOfWeek.forEach { day ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                for (dayOfWeek in DayOfWeek.values()) {
+                    val dayName = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
                     Box(
                         modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = day,
-                            modifier = Modifier.padding(4.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
+                            text = dayName,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
             
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // Calendar days grid
             val calendarDays = generateCalendarDays(currentMonth, medications)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(7),
-                modifier = Modifier.heightIn(min = 240.dp),
+                modifier = Modifier.height(280.dp),
                 content = {
                     items(calendarDays) { day ->
                         CalendarDay(
                             day = day,
                             isToday = day.date == today,
+                            isSelected = day.date == selectedDate,
+                            onDateClick = { selectedDate = day.date },
                             modifier = Modifier.aspectRatio(1f)
                         )
                     }
                 }
             )
             
-            // Medications legend
-            if (medications.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Detail view for selected date
+            val medsForSelectedDate = calendarDays.find { it.date == selectedDate }?.medicationsForDay ?: emptyList()
+            
+            Text(
+                text = "Leki na ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            if (medsForSelectedDate.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Brak leków na ten dzień",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(vertical = 8.dp)
                 ) {
-                    Text(
-                        text = "Leki w kalendarzu:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    
-                    medications.forEach { lek ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val color = getMedicationColor(lek)
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(color)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "${lek.nazwa} - ${lek.ilosc} ${lek.jednostka}, ${lek.czestotliwosc}",
-                                style = MaterialTheme.typography.bodySmall,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                    medsForSelectedDate.forEach { medInfo ->
+                        MedicationStatusItem(medInfo)
                     }
                 }
             }
             
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // Status legend
+            Text(
+                text = "Legenda",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                LegendItem(color = Color.Green, text = "Wzięty")
-                LegendItem(color = Color.Red, text = "Pominięty")
-                LegendItem(color = Color(0xFFFFA500), text = "Zaplanowany") // Orange
-                LegendItem(color = Color.LightGray, text = "Brak leku")
+                LegendItem(color = Color(0xFF4CAF50), text = "Wzięty") // Green
+                LegendItem(color = Color(0xFFF44336), text = "Pominięty") // Red
+                LegendItem(color = Color(0xFF2196F3), text = "Zaplanowany") // Blue
             }
         }
     }
@@ -190,23 +208,41 @@ fun MedicineCalendar(
 private fun CalendarDay(
     day: MedicineCalendarDay,
     isToday: Boolean,
+    isSelected: Boolean,
+    onDateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val borderColor = if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent
-    val textColor = if (day.isCurrentMonth) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+    val dayTextColor = when {
+        !day.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+        isToday -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
     }
     
-    // Custom border widths
-    val strokeWidthPx = with(LocalDensity.current) { 1.dp.toPx() }
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        else -> Color.Transparent
+    }
+    
+    // Calculate medication status indicators
+    val takenCount = day.medicationsForDay.count { it.status == MedicineStatus.TAKEN }
+    val notTakenCount = day.medicationsForDay.count { it.status == MedicineStatus.NOT_TAKEN }
+    val scheduledCount = day.medicationsForDay.count { it.status == MedicineStatus.SCHEDULED }
+    
+    val hasMedications = takenCount + notTakenCount + scheduledCount > 0
     
     Box(
         modifier = modifier
-            .padding(1.dp)
-            .border(1.dp, borderColor)
-            .drawMedicationIndicators(day.medicationsForDay, strokeWidthPx),
+            .padding(2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(backgroundColor)
+            .border(
+                width = if (isToday) 2.dp else 0.dp,
+                color = if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable(enabled = day.isCurrentMonth) { onDateClick() }
+            .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -216,113 +252,127 @@ private fun CalendarDay(
             // Day number
             Text(
                 text = day.date.dayOfMonth.toString(),
-                color = textColor,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 2.dp)
+                color = dayTextColor,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp)
             )
             
-            // If we have medications for this day, show them
-            if (day.medicationsForDay.isNotEmpty()) {
-                val takenMeds = day.medicationsForDay.count { it.status == MedicineStatus.TAKEN }
-                val totalScheduled = day.medicationsForDay.count { it.isScheduledForDay }
-                
-                if (totalScheduled > 0) {
-                    Text(
-                        text = "$takenMeds/$totalScheduled",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
-                        color = if (takenMeds >= totalScheduled) Color.Green else Color.Red
-                    )
+            Spacer(modifier = Modifier.height(2.dp))
+            
+            // Medication indicators
+            if (hasMedications) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    if (takenCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF4CAF50)) // Green
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(2.dp))
+                    
+                    if (notTakenCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF44336)) // Red
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(2.dp))
+                    
+                    if (scheduledCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF2196F3)) // Blue
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun Modifier.drawMedicationIndicators(
-    medicationsInfo: List<MedicationScheduleInfo>,
-    strokeWidth: Float
-): Modifier {
-    return this.drawBehind {
-        if (medicationsInfo.isEmpty()) {
-            // Draw light gray background if no medications
-            drawRect(Color.LightGray.copy(alpha = 0.1f))
-            return@drawBehind
-        }
-        
-        // Group by medication to draw indicators
-        val medGroups = medicationsInfo.groupBy { it.lek.id }
-        
-        // Calculate section height
-        val sectionHeight = size.height / medGroups.size.coerceAtLeast(1)
-        
-        medGroups.values.forEachIndexed { index, medInfos ->
-            if (medInfos.isEmpty()) return@forEachIndexed
-            
-            val info = medInfos.first()
-            val backgroundColor = when (info.status) {
-                MedicineStatus.TAKEN -> Color.Green.copy(alpha = 0.3f)
-                MedicineStatus.NOT_TAKEN -> Color.Red.copy(alpha = 0.3f)
-                MedicineStatus.SCHEDULED -> Color(0xFFFFA500).copy(alpha = 0.3f) // Orange
-                MedicineStatus.NONE -> Color.LightGray.copy(alpha = 0.1f)
-            }
-            
-            // Calculate the section for this medication
-            val top = index * sectionHeight
-            drawRect(
-                color = backgroundColor,
-                topLeft = Offset(0f, top),
-                size = androidx.compose.ui.geometry.Size(size.width, sectionHeight)
-            )
-            
-            // If this is a scheduled day in a cycle, draw a pattern
-            if (info.isScheduledForDay) {
-                drawSchedulePattern(
-                    info.lek,
-                    top,
-                    top + sectionHeight,
-                    strokeWidth
-                )
-            }
-        }
-    }
-}
-
-private fun DrawScope.drawSchedulePattern(
-    lek: Lek,
-    top: Float,
-    bottom: Float,
-    strokeWidth: Float
-) {
-    // Get cycle pattern based on frequency
-    val pattern = when (lek.czestotliwosc) {
-        "co drugi dzień" -> listOf(true, false)
-        "raz w tygodniu" -> listOf(true, false, false, false, false, false, false)
-        // For "2 x dziennie" or "3 x dziennie" we still mark the day
-        else -> listOf(true)
+@Composable
+private fun MedicationStatusItem(medInfo: MedicationScheduleInfo) {
+    val backgroundColor = when (medInfo.status) {
+        MedicineStatus.TAKEN -> Color(0xFF4CAF50).copy(alpha = 0.1f) // Green with opacity
+        MedicineStatus.NOT_TAKEN -> Color(0xFFF44336).copy(alpha = 0.1f) // Red with opacity
+        MedicineStatus.SCHEDULED -> Color(0xFF2196F3).copy(alpha = 0.1f) // Blue with opacity
+        MedicineStatus.NONE -> Color.Transparent
     }
     
-    if (pattern.size > 1) { // Only draw pattern for periodic schedules
-        val patternWidth = size.width / pattern.size
-        
-        pattern.forEachIndexed { index, isActive ->
-            if (isActive) {
-                // Draw diagonal lines for scheduled days
-                val startX = index * patternWidth
-                val endX = startX + patternWidth
+    val iconTint = when (medInfo.status) {
+        MedicineStatus.TAKEN -> Color(0xFF4CAF50) // Green
+        MedicineStatus.NOT_TAKEN -> Color(0xFFF44336) // Red
+        MedicineStatus.SCHEDULED -> Color(0xFF2196F3) // Blue
+        MedicineStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    val statusText = when (medInfo.status) {
+        MedicineStatus.TAKEN -> "Wzięty"
+        MedicineStatus.NOT_TAKEN -> "Pominięty"
+        MedicineStatus.SCHEDULED -> "Zaplanowany"
+        MedicineStatus.NONE -> "Brak"
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = when (medInfo.status) {
+                    MedicineStatus.TAKEN -> Icons.Default.CheckCircle
+                    MedicineStatus.NOT_TAKEN -> Icons.Default.Close
+                    MedicineStatus.SCHEDULED -> Icons.Default.CheckCircle
+                    MedicineStatus.NONE -> Icons.Default.CheckCircle
+                },
+                contentDescription = statusText,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = medInfo.lek.nazwa,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
                 
-                // Draw diagonal lines
-                for (i in 0..4) {
-                    val offset = i * 4
-                    drawLine(
-                        color = Color.Black.copy(alpha = 0.2f),
-                        start = Offset(startX + offset, top),
-                        end = Offset(startX + offset + (bottom - top)/2, bottom),
-                        strokeWidth = strokeWidth
-                    )
-                }
+                Text(
+                    text = "${medInfo.lek.ilosc} ${medInfo.lek.jednostka}, ${medInfo.lek.czestotliwosc}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.labelMedium,
+                color = iconTint
+            )
         }
     }
 }
@@ -335,42 +385,32 @@ private fun LegendItem(color: Color, text: String) {
     ) {
         Box(
             modifier = Modifier
-                .size(12.dp)
+                .size(10.dp)
+                .clip(CircleShape)
                 .background(color)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodySmall,
+            fontSize = 10.sp
         )
     }
-}
-
-private fun getMedicationColor(lek: Lek): Color {
-    // Generate a unique color for each medication based on the name
-    val hash = lek.nazwa.hashCode()
-    return Color(
-        red = ((hash and 0xFF0000) shr 16) / 255f,
-        green = ((hash and 0x00FF00) shr 8) / 255f,
-        blue = (hash and 0x0000FF) / 255f,
-        alpha = 0.7f
-    )
 }
 
 private fun generateCalendarDays(yearMonth: YearMonth, medications: List<Lek>): List<MedicineCalendarDay> {
     val firstDayOfMonth = yearMonth.atDay(1)
     val lastDayOfMonth = yearMonth.atEndOfMonth()
     
-    // In the European calendar, Monday is the first day (value 1), Sunday is the last day (value 7)
+    // Get day of week adjusted for locale (Monday as 1, Sunday as 7)
     var dayOfWeek = firstDayOfMonth.dayOfWeek.value
-    if (dayOfWeek == 7) dayOfWeek = 0 // Adjust Sunday from 7 to 0
     
-    // Calculate how many days we need to show from the previous month
-    val daysFromPreviousMonth = if (dayOfWeek == 0) 6 else dayOfWeek - 1
+    // Calculate how many days we need to show from the previous month (to start with Monday)
+    val daysFromPreviousMonth = if (dayOfWeek == 7) 6 else dayOfWeek - 1
     
     val calendarStart = firstDayOfMonth.minusDays(daysFromPreviousMonth.toLong())
     
-    // We need 6 rows of 7 days each to ensure we have enough space
+    // We need 6 rows of 7 days to ensure we have enough space
     val daysToShow = 42 // 6 weeks × 7 days
     
     val today = LocalDate.now()
@@ -380,11 +420,7 @@ private fun generateCalendarDays(yearMonth: YearMonth, medications: List<Lek>): 
         val isCurrentMonth = currentDate.month == yearMonth.month
         
         // Determine medications and status for this day
-        val medicationsForDay = if (isCurrentMonth || currentDate == today) {
-            determineMedicationsForDay(currentDate, medications)
-        } else {
-            emptyList()
-        }
+        val medicationsForDay = determineMedicationsForDay(currentDate, medications)
         
         MedicineCalendarDay(
             date = currentDate,
@@ -396,51 +432,43 @@ private fun generateCalendarDays(yearMonth: YearMonth, medications: List<Lek>): 
 
 private fun determineMedicationsForDay(date: LocalDate, medications: List<Lek>): List<MedicationScheduleInfo> {
     val today = LocalDate.now()
+    val formatter = DateTimeFormatter.ISO_LOCAL_DATE
     
-    return medications.map { lek ->
-        // Determine if this medication should be taken on this day based on frequency
-        val isScheduled = isScheduledForDate(date, lek.czestotliwosc)
-        
-        val status = when {
-            date.isAfter(today) -> {
-                if (isScheduled) MedicineStatus.SCHEDULED else MedicineStatus.NONE
-            }
-            date.isEqual(today) -> {
-                if (lek.przyjety) {
-                    MedicineStatus.TAKEN
-                } else if (isScheduled) {
-                    MedicineStatus.NOT_TAKEN
-                } else {
-                    MedicineStatus.NONE
+    return medications.mapNotNull { lek ->
+        // First, check if the medication has been taken on this specific date
+        if (lek.dataWziecia.isNotEmpty()) {
+            try {
+                val takenDate = LocalDate.parse(lek.dataWziecia, formatter)
+                if (takenDate == date) {
+                    return@mapNotNull MedicationScheduleInfo(lek, MedicineStatus.TAKEN)
                 }
-            }
-            else -> { // Past days
-                // For demo, alternate based on day of month and medication pattern
-                if (isScheduled) {
-                    if ((date.dayOfMonth + lek.nazwa.length) % 3 != 0) {
-                        MedicineStatus.TAKEN
-                    } else {
-                        MedicineStatus.NOT_TAKEN
-                    }
-                } else {
-                    MedicineStatus.NONE
-                }
+            } catch (e: Exception) {
+                // Handle parsing error
             }
         }
         
-        // Calculate day in cycle if applicable
-        val dayInCycle = when (lek.czestotliwosc) {
-            "co drugi dzień" -> ChronoUnit.DAYS.between(LocalDate.of(date.year, 1, 1), date) % 2 + 1
-            "raz w tygodniu" -> date.dayOfWeek.value.toLong()
-            else -> null
-        }?.toInt()
+        // If we're checking today and the medication has not been taken
+        if (date == today && isScheduledForDate(date, lek.czestotliwosc)) {
+            return@mapNotNull MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN)
+        }
         
-        MedicationScheduleInfo(
-            lek = lek,
-            status = status,
-            isScheduledForDay = isScheduled,
-            dayInCycle = dayInCycle
-        )
+        // For future dates, show as scheduled
+        if (date.isAfter(today) && isScheduledForDate(date, lek.czestotliwosc)) {
+            return@mapNotNull MedicationScheduleInfo(lek, MedicineStatus.SCHEDULED)
+        }
+        
+        // For past dates - simulate based on pattern
+        if (date.isBefore(today) && isScheduledForDate(date, lek.czestotliwosc)) {
+            // This is just for demonstration - in a real app, you'd query actual historical data
+            val status = if ((date.dayOfMonth + lek.nazwa.length) % 3 != 0) {
+                MedicineStatus.TAKEN
+            } else {
+                MedicineStatus.NOT_TAKEN
+            }
+            return@mapNotNull MedicationScheduleInfo(lek, status)
+        }
+        
+        null // No medication for this day
     }
 }
 
