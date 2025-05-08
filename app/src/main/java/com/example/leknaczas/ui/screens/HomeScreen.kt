@@ -8,17 +8,17 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.leknaczas.R
 import com.example.leknaczas.model.Lek
@@ -59,7 +59,7 @@ fun HomeScreen(
     var expandedIlosc by remember { mutableStateOf(false) }
     var expandedJednostka by remember { mutableStateOf(false) }
     
-    // Inicjalizacja pagerState dla przesuwania ekranów w poziomie - update to 3 pages
+    // Inicjalizacja pagerState dla przesuwania ekranów w poziomie
     val pagerState = rememberPagerState(pageCount = { 3 })
     
     // Tworzenie zakresu korutyny dla operacji asynchronicznych
@@ -71,7 +71,10 @@ fun HomeScreen(
     }
 
     // Calculate streak information
-    val (currentStreak, longestStreak, lastWeekAdherence) = calculateStreakInfo(leki)
+    val streakInfo = calculateStreakInfo(leki)
+    val currentStreak = streakInfo.first
+    val longestStreak = streakInfo.second
+    val lastWeekAdherence = streakInfo.third
 
     Scaffold(
         topBar = {
@@ -106,7 +109,7 @@ fun HomeScreen(
                     )
                 )
                 
-                // Tabs to switch between pages - now with 3 tabs
+                // Tabs to switch between pages
                 TabRow(
                     selectedTabIndex = pagerState.currentPage,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -228,7 +231,7 @@ fun HomeScreen(
                                                 )
                                             }
                                         }
-                                    )
+                                    }
                                     
                                     // Row dla ilości i jednostki
                                     Row(
@@ -268,7 +271,7 @@ fun HomeScreen(
                                                     )
                                                 }
                                             }
-                                        )
+                                        }
                                         
                                         // Dropdown dla jednostki
                                         ExposedDropdownMenuBox(
@@ -301,8 +304,8 @@ fun HomeScreen(
                                                     )
                                                 }
                                             }
-                                        )
-                                    )
+                                        }
+                                    }
                                     
                                     Button(
                                         onClick = {
@@ -566,7 +569,7 @@ fun HomeScreen(
 }
 
 // Helper function to calculate streak-related statistics
-private fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
+fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
     if (leki.isEmpty()) {
         return Triple(0, 0, 0f)
     }
