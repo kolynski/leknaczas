@@ -509,7 +509,7 @@ fun HomeScreen(
                                         )
                                         
                                         LinearProgressIndicator(
-                                            progress = { lastWeekAdherence },
+                                            progress = lastWeekAdherence,  // Remove the curly braces
                                             modifier = Modifier
                                                 .align(Alignment.CenterVertically)
                                                 .height(12.dp)

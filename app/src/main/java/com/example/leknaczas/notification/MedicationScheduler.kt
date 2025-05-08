@@ -6,6 +6,7 @@ import androidx.work.*
 import com.example.leknaczas.model.Lek
 import java.time.*
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 
 class MedicationScheduler(private val context: Context) {
@@ -56,7 +57,7 @@ class MedicationScheduler(private val context: Context) {
         val daysSinceStartOfYear = ChronoUnit.DAYS.between(startOfYear, today)
         
         // Calculate initial delay - if today is an "off" day, start tomorrow
-        val initialDelayDays = if (daysSinceStartOfYear % 2 == 0L) 0 else 1
+        val initialDelayDays = if (daysSinceStartOfYear % 2 == 0L) 0L else 1L
         val initialDelay = calculateInitialDelay(hourOfDay, 0, initialDelayDays)
         
         schedulePeriodicReminder(lek, initialDelay, Duration.ofDays(2))
@@ -68,9 +69,9 @@ class MedicationScheduler(private val context: Context) {
     private fun scheduleWeekly(lek: Lek, dayOfWeek: DayOfWeek, hourOfDay: Int) {
         val today = LocalDate.now()
         val daysUntilNext = (7 + dayOfWeek.value - today.dayOfWeek.value) % 7
-        val initialDelayDays = if (daysUntilNext == 0 && LocalTime.now().isAfter(LocalTime.of(hourOfDay, 0))) 7 else daysUntilNext
+        val initialDelayDays = if (daysUntilNext == 0 && LocalTime.now().isAfter(LocalTime.of(hourOfDay, 0))) 7L else daysUntilNext.toLong()
         
-        val initialDelay = calculateInitialDelay(hourOfDay, 0, initialDelayDays.toLong())
+        val initialDelay = calculateInitialDelay(hourOfDay, 0, initialDelayDays)
         
         schedulePeriodicReminder(lek, initialDelay, Duration.ofDays(7))
     }

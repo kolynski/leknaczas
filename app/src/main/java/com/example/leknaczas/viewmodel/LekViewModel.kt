@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.leknaczas.model.Lek
 import com.example.leknaczas.notification.MedicationScheduler
 import com.example.leknaczas.repository.LekRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -58,8 +60,9 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
                 delay(500)
                 
                 // Reload to get the newly added medication
-                lekRepository.getLekiFlow().firstOrNull()?.find { it.id == lekId }?.let { lek ->
-                    medicationScheduler.scheduleMedicationReminders(lek)
+                val newMedication = lekRepository.getLekiFlow().firstOrNull()?.find { it.id == lekId }
+                if (newMedication != null) {
+                    medicationScheduler.scheduleMedicationReminders(newMedication)
                 }
             }
             
@@ -78,8 +81,9 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
                 medicationScheduler.cancelRemindersForMedication(lek.id)
                 // Reschedule for future doses
                 delay(500) // Small delay to ensure database update completes
-                lekRepository.getLekiFlow().firstOrNull()?.find { it.id == lek.id }?.let { updatedLek ->
-                    medicationScheduler.scheduleMedicationReminders(updatedLek)
+                val updatedMedication = lekRepository.getLekiFlow().firstOrNull()?.find { it.id == lek.id }
+                if (updatedMedication != null) {
+                    medicationScheduler.scheduleMedicationReminders(updatedMedication)
                 }
             }
         }

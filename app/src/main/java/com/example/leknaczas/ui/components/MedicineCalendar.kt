@@ -231,7 +231,7 @@ private fun CalendarDay(
                     Text(
                         text = "$takenMeds/$totalScheduled",
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = androidx.compose.ui.unit.sp(9),
+                        fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
                         color = if (takenMeds >= totalScheduled) Color.Green else Color.Red
                     )
                 }
