@@ -7,6 +7,5 @@ data class Lek(
     val czestotliwosc: String = "",
     val ilosc: String = "", // Nowe pole - ilość leku (np. 1 tabletka)
     val jednostka: String = "", // Nowe pole - jednostka (np. tabletka, opakowanie)
-    val przyjety: Boolean = false,
-    val dataWziecia: String = "" // Data przyjęcia leku w formacie "yyyy-MM-dd"
+    val przyjecia: Map<String, Boolean> = emptyMap() // <--- dodaj to pole
 )

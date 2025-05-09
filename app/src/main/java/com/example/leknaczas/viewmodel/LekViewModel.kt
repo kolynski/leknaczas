@@ -107,9 +107,9 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun markAsNotTaken(lek: Lek) {
+    fun markAsNotTaken(lek: Lek, date: String) {
         viewModelScope.launch {
-            lekRepository.updateLekStatus(lek, "")
+            lekRepository.markLekAsNotTaken(lek.id, date)
         }
     }
 }

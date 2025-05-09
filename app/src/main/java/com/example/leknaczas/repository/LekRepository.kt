@@ -172,16 +172,40 @@ class LekRepository : ILekRepository {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
-
         try {
+            // Pobierz aktualną mapę przyjęć
+            val docRef = userLekiCollection?.document(lekId)
+            val snapshot = docRef?.get()?.await()
+            val lek = snapshot?.toObject(com.example.leknaczas.model.Lek::class.java)
+            val aktualnePrzyjecia = lek?.przyjecia?.toMutableMap() ?: mutableMapOf()
+            aktualnePrzyjecia[dataWziecia] = true
+
             val updates = hashMapOf<String, Any>(
-                "przyjety" to true,
-                "dataWziecia" to dataWziecia
+                "przyjecia" to aktualnePrzyjecia
             )
-            
-            userLekiCollection?.document(lekId)?.update(updates)?.await()
+            docRef?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error marking lek as taken", e)
+        }
+    }
+
+    suspend fun markLekAsNotTaken(lekId: String, dataWziecia: String) {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+        try {
+            val docRef = userLekiCollection?.document(lekId)
+            val snapshot = docRef?.get()?.await()
+            val lek = snapshot?.toObject(com.example.leknaczas.model.Lek::class.java)
+            val aktualnePrzyjecia = lek?.przyjecia?.toMutableMap() ?: mutableMapOf()
+            aktualnePrzyjecia[dataWziecia] = false
+
+            val updates = hashMapOf<String, Any>(
+                "przyjecia" to aktualnePrzyjecia
+            )
+            docRef?.update(updates)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error marking lek as not taken", e)
         }
     }
 }
