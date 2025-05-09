@@ -396,6 +396,25 @@ fun HomeScreen(
                             
                             MedicineCalendar(
                                 medications = leki,
+                                onMedicationStatusChange = { lek, dataWziecia ->
+                                    // Jeśli data jest niepusta, oznaczamy jako wzięty z datą
+                                    // Jeśli data jest pusta, oznaczamy jako niewzięty
+                                    val shouldBeTaken = dataWziecia.isNotEmpty()
+                                    
+                                    viewModelScope.launch {
+                                        if (shouldBeTaken) {
+                                            // Ustaw lek jako wzięty w danej dacie
+                                            if (!lek.przyjety || lek.dataWziecia != dataWziecia) {
+                                                lekViewModel.markAsTakenOnDate(lek, dataWziecia)
+                                            }
+                                        } else {
+                                            // Ustaw lek jako niewzięty
+                                            if (lek.przyjety) {
+                                                lekViewModel.markAsNotTaken(lek)
+                                            }
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             )
                             

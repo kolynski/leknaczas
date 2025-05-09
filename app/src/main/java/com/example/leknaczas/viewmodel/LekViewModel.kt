@@ -36,11 +36,11 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadLeki() {
         viewModelScope.launch {
             _isLoading.value = true
-            lekRepository.getLekiFlow().collect { lekiList ->
+            lekRepository.getLekiFlow().collect { lekiList -> 
                 _leki.value = lekiList
                 
                 // Schedule notifications for all medications
-                lekiList.forEach { lek ->
+                lekiList.forEach { lek -> 
                     medicationScheduler.scheduleMedicationReminders(lek)
                 }
                 
@@ -96,6 +96,20 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
             
             // Delete the medication
             lekRepository.deleteLek(lek.id)
+        }
+    }
+
+    // Dodaj poniższe funkcje do klasy LekViewModel
+
+    fun markAsTakenOnDate(lek: Lek, date: String) {
+        viewModelScope.launch {
+            lekRepository.markLekAsTaken(lek.id, date)
+        }
+    }
+
+    fun markAsNotTaken(lek: Lek) {
+        viewModelScope.launch {
+            lekRepository.updateLekStatus(lek, "")
         }
     }
 }
