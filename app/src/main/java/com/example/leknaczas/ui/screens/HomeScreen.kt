@@ -658,101 +658,95 @@ fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
     
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ISO_LOCAL_DATE
-    val dateToMeds = mutableMapOf<LocalDate, MutableList<Lek>>()
     
-    // Group medications by date
+    // Zbieramy wszystkie daty przyjęcia leków z mapy przyjecia
+    val dateToStatus = mutableMapOf<LocalDate, Boolean>()
+    
+    // Dla każdego dnia sprawdzamy, czy wszystkie zaplanowane leki zostały przyjęte
+    val allDates = mutableSetOf<LocalDate>()
+    
+    // Zbieramy wszystkie daty, dla których mamy informacje w mapie przyjecia
     leki.forEach { lek ->
-        if (lek.dataWziecia.isNotEmpty()) {
+        lek.przyjecia.forEach { (dateStr, taken) ->
             try {
-                val date = LocalDate.parse(lek.dataWziecia, formatter)
-                if (!dateToMeds.containsKey(date)) {
-                    dateToMeds[date] = mutableListOf()
-                }
-                dateToMeds[date]?.add(lek)
+                val date = LocalDate.parse(dateStr, formatter)
+                allDates.add(date)
+                
+                // Jeśli dla danego dnia jakikolwiek lek nie został wzięty, cały dzień jest nieukończony
+                val currentStatus = dateToStatus[date] ?: true
+                dateToStatus[date] = currentStatus && taken
             } catch (e: Exception) {
-                // Handle parsing error
+                // Obsługa błędu parsowania daty
             }
         }
     }
     
-    // Calculate current streak
-    var currentStreak = 0
-    var currentDate = today
+    // Posortuj daty od najnowszej do najstarszej
+    val sortedDates = allDates.sortedDescending()
     
+    // Oblicz aktualną serię
+    var currentStreak = 0
+    var checkDate = today
+    
+    // Sprawdź wstecz od dzisiaj
     while (true) {
-        val medsForDate = dateToMeds[currentDate]
-        val isComplete = medsForDate != null && 
-                medsForDate.isNotEmpty() && 
-                medsForDate.all { it.przyjety }
+        val dateStatus = dateToStatus[checkDate]
         
-        if (isComplete) {
+        // Jeśli mamy informację o tym dniu i wszystkie leki zostały wzięte
+        if (dateStatus == true) {
             currentStreak++
-            currentDate = currentDate.minusDays(1)
+            checkDate = checkDate.minusDays(1)
         } else {
+            // Jeśli nie mamy informacji o dniu lub któryś lek nie został wzięty, kończymy serię
             break
         }
     }
     
-    // Calculate longest streak
-    var longestStreak = currentStreak
-    var streakStart: LocalDate? = null
-    var streakEnd: LocalDate? = null
-    var tempStart: LocalDate? = null
-    var tempStreak = 0
+    // Oblicz najdłuższą serię
+    var longestStreak = 0
+    var currentLongestStreak = 0
+    var prevDate: LocalDate? = null
     
-    // Get all dates sorted
-    val allDates = dateToMeds.keys.sorted()
-    
-    for (i in allDates.indices) {
-        val date = allDates[i]
-        val medsForDate = dateToMeds[date] ?: emptyList()
-        val isComplete = medsForDate.isNotEmpty() && medsForDate.all { it.przyjety }
+    // Przechodzimy przez wszystkie daty posortowane od najstarszej do najnowszej
+    for (date in sortedDates.sortedBy { it }) {
+        val dateStatus = dateToStatus[date]
         
-        if (isComplete) {
-            if (tempStart == null) {
-                tempStart = date
-            }
-            
-            // Check if this is part of a streak
-            if (i > 0) {
-                val prevDate = allDates[i-1]
-                if (ChronoUnit.DAYS.between(date, prevDate) == 1L) {
-                    tempStreak++
-                } else {
-                    tempStreak = 1
-                    tempStart = date
-                }
+        // Jeśli wszystkie leki zostały wzięte tego dnia
+        if (dateStatus == true) {
+            if (prevDate == null || ChronoUnit.DAYS.between(prevDate, date) == 1L) {
+                // Kontynuujemy serię
+                currentLongestStreak++
             } else {
-                tempStreak = 1
+                // Rozpoczynamy nową serię
+                currentLongestStreak = 1
             }
             
-            // Update longest streak if needed
-            if (tempStreak > longestStreak) {
-                longestStreak = tempStreak
-                streakStart = tempStart
-                streakEnd = date
-            }
+            // Aktualizujemy najdłuższą serię jeśli obecna jest dłuższa
+            longestStreak = maxOf(longestStreak, currentLongestStreak)
+            prevDate = date
         } else {
-            tempStreak = 0
-            tempStart = null
+            // Resetujemy serię
+            currentLongestStreak = 0
+            prevDate = null
         }
     }
     
-    // Calculate last week adherence
+    // Oblicz tygodniową skuteczność
     var takenCount = 0
-    var totalCount = 0
+    var totalScheduled = 0
     
+    // Sprawdzamy ostatni tydzień
     for (i in 0..6) {
         val date = today.minusDays(i.toLong())
-        val medsForDate = dateToMeds[date] ?: emptyList()
-        
-        if (medsForDate.isNotEmpty()) {
-            totalCount += medsForDate.size
-            takenCount += medsForDate.count { it.przyjety }
+        if (dateToStatus.containsKey(date)) {
+            totalScheduled++
+            if (dateToStatus[date] == true) {
+                takenCount++
+            }
         }
     }
     
-    val lastWeekAdherence = if (totalCount > 0) takenCount.toFloat() / totalCount else 0f
+    val lastWeekAdherence = if (totalScheduled > 0) takenCount.toFloat() / totalScheduled else 0f
     
     return Triple(currentStreak, longestStreak, lastWeekAdherence)
 }
