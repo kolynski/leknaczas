@@ -1,4 +1,4 @@
-Collecting workspace information# 📱 LekNaCzas - Mobilny Asystent Przyjmowania Leków
+# 📱 LekNaCzas - Mobilny Asystent Przyjmowania Leków
 
 ![LekNaCzas Logo](https://img.shields.io/badge/LekNaCzas-v1.0-blue)
 
