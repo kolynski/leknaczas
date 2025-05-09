@@ -401,7 +401,8 @@ fun HomeScreen(
                                     // Jeśli data jest pusta, oznaczamy jako niewzięty
                                     val shouldBeTaken = dataWziecia.isNotEmpty()
                                     
-                                    viewModelScope.launch {
+                                    // Użyj istniejącego coroutineScope zamiast viewModelScope
+                                    coroutineScope.launch {
                                         if (shouldBeTaken) {
                                             // Ustaw lek jako wzięty w danej dacie
                                             if (!lek.przyjety || lek.dataWziecia != dataWziecia) {
