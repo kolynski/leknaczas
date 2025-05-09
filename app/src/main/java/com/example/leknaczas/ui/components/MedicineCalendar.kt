@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.NavigateBefore
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material3.*
@@ -22,7 +23,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.leknaczas.model.Lek
@@ -55,11 +55,16 @@ enum class MedicineStatus {
 @Composable
 fun MedicineCalendar(
     medications: List<Lek>,
+    onMedicationStatusChange: (Lek, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
+    
+    // Dialog state
+    var showStatusDialog by remember { mutableStateOf(false) }
+    var selectedMedication by remember { mutableStateOf<MedicationScheduleInfo?>(null) }
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -149,26 +154,80 @@ fun MedicineCalendar(
             
             // Detail view for selected date
             val medsForSelectedDate = calendarDays.find { it.date == selectedDate }?.medicationsForDay ?: emptyList()
+            val isPastOrPresent = !selectedDate.isAfter(today)
             
-            Text(
-                text = "Leki na ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Leki na ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                if (isPastOrPresent && selectedDate != today) {
+                    // Add a small edit button hint for past dates
+                    Text(
+                        text = "Można edytować",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
             
             if (medsForSelectedDate.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Brak leków na ten dzień",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // Check if we should show potential medications that could be added
+                val potentialMeds = if (isPastOrPresent) {
+                    medications.filter { lek -> 
+                        isScheduledForDate(selectedDate, lek.czestotliwosc) 
+                    }.map { lek ->
+                        MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN)
+                    }
+                } else emptyList()
+                
+                if (potentialMeds.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Brak leków na ten dzień",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Zaplanowane leki na ten dzień:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        potentialMeds.forEach { medInfo ->
+                            MedicationStatusItem(
+                                medInfo = medInfo,
+                                isPast = isPastOrPresent,
+                                onEditStatus = {
+                                    selectedMedication = medInfo
+                                    showStatusDialog = true
+                                }
+                            )
+                        }
+                    }
                 }
             } else {
                 Column(
@@ -177,7 +236,14 @@ fun MedicineCalendar(
                         .padding(vertical = 8.dp)
                 ) {
                     medsForSelectedDate.forEach { medInfo ->
-                        MedicationStatusItem(medInfo)
+                        MedicationStatusItem(
+                            medInfo = medInfo,
+                            isPast = isPastOrPresent,
+                            onEditStatus = {
+                                selectedMedication = medInfo
+                                showStatusDialog = true
+                            }
+                        )
                     }
                 }
             }
@@ -201,6 +267,50 @@ fun MedicineCalendar(
                 LegendItem(color = Color(0xFF2196F3), text = "Zaplanowany") // Blue
             }
         }
+    }
+    
+    // Dialog to change medication status
+    if (showStatusDialog && selectedMedication != null) {
+        val med = selectedMedication!!
+        
+        AlertDialog(
+            onDismissRequest = { showStatusDialog = false },
+            title = { Text("Status leku") },
+            text = {
+                Column {
+                    Text("Czy przyjąłeś ${med.lek.nazwa} dnia ${
+                        selectedDate.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault()))
+                    }?")
+                    
+                    Text(
+                        text = "Dawka: ${med.lek.ilosc} ${med.lek.jednostka}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        onMedicationStatusChange(med.lek, selectedDate.toString())
+                        showStatusDialog = false
+                    }
+                ) {
+                    Text("Tak, wziąłem/-ęłam")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { 
+                        // For NOT_TAKEN, we set the date to empty
+                        onMedicationStatusChange(med.lek, "")
+                        showStatusDialog = false
+                    }
+                ) {
+                    Text("Nie wziąłem/-ęłam")
+                }
+            }
+        )
     }
 }
 
@@ -303,7 +413,11 @@ private fun CalendarDay(
 }
 
 @Composable
-private fun MedicationStatusItem(medInfo: MedicationScheduleInfo) {
+private fun MedicationStatusItem(
+    medInfo: MedicationScheduleInfo,
+    isPast: Boolean = false,
+    onEditStatus: () -> Unit = {}
+) {
     val backgroundColor = when (medInfo.status) {
         MedicineStatus.TAKEN -> Color(0xFF4CAF50).copy(alpha = 0.1f) // Green with opacity
         MedicineStatus.NOT_TAKEN -> Color(0xFFF44336).copy(alpha = 0.1f) // Red with opacity
@@ -373,6 +487,23 @@ private fun MedicationStatusItem(medInfo: MedicationScheduleInfo) {
                 style = MaterialTheme.typography.labelMedium,
                 color = iconTint
             )
+            
+            // Show edit button only for past dates or NOT_TAKEN current date
+            if (isPast) {
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                IconButton(
+                    onClick = onEditStatus,
+                    modifier = Modifier.size(30.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edytuj status",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -433,43 +564,45 @@ private fun generateCalendarDays(yearMonth: YearMonth, medications: List<Lek>): 
 private fun determineMedicationsForDay(date: LocalDate, medications: List<Lek>): List<MedicationScheduleInfo> {
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+    val resultList = mutableListOf<MedicationScheduleInfo>()
     
-    return medications.mapNotNull { lek ->
-        // First, check if the medication has been taken on this specific date
-        if (lek.dataWziecia.isNotEmpty()) {
-            try {
-                val takenDate = LocalDate.parse(lek.dataWziecia, formatter)
-                if (takenDate == date) {
-                    return@mapNotNull MedicationScheduleInfo(lek, MedicineStatus.TAKEN)
+    medications.forEach { lek ->
+        // Check if this medication should be scheduled for this date based on frequency
+        val shouldBeScheduled = isScheduledForDate(date, lek.czestotliwosc)
+        
+        if (shouldBeScheduled) {
+            // First check if the medication has a specific status for this date
+            if (lek.dataWziecia.isNotEmpty()) {
+                try {
+                    val takenDate = LocalDate.parse(lek.dataWziecia, formatter)
+                    if (takenDate == date && lek.przyjety) {
+                        // Medication was taken on this date
+                        resultList.add(MedicationScheduleInfo(lek, MedicineStatus.TAKEN))
+                        return@forEach
+                    }
+                } catch (e: Exception) {
+                    // Handle parsing error
                 }
-            } catch (e: Exception) {
-                // Handle parsing error
+            }
+            
+            // If we reach here, the medication wasn't marked as taken on this date
+            
+            // For today - show as NOT_TAKEN
+            if (date == today) {
+                resultList.add(MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN))
+            } 
+            // For past dates - show as NOT_TAKEN (missed)
+            else if (date.isBefore(today)) {
+                resultList.add(MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN))
+            }
+            // For future dates - show as scheduled
+            else {
+                resultList.add(MedicationScheduleInfo(lek, MedicineStatus.SCHEDULED))
             }
         }
-        
-        // If we're checking today and the medication has not been taken
-        if (date == today && isScheduledForDate(date, lek.czestotliwosc)) {
-            return@mapNotNull MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN)
-        }
-        
-        // For future dates, show as scheduled
-        if (date.isAfter(today) && isScheduledForDate(date, lek.czestotliwosc)) {
-            return@mapNotNull MedicationScheduleInfo(lek, MedicineStatus.SCHEDULED)
-        }
-        
-        // For past dates - simulate based on pattern
-        if (date.isBefore(today) && isScheduledForDate(date, lek.czestotliwosc)) {
-            // This is just for demonstration - in a real app, you'd query actual historical data
-            val status = if ((date.dayOfMonth + lek.nazwa.length) % 3 != 0) {
-                MedicineStatus.TAKEN
-            } else {
-                MedicineStatus.NOT_TAKEN
-            }
-            return@mapNotNull MedicationScheduleInfo(lek, status)
-        }
-        
-        null // No medication for this day
     }
+    
+    return resultList
 }
 
 private fun isScheduledForDate(date: LocalDate, frequency: String): Boolean {

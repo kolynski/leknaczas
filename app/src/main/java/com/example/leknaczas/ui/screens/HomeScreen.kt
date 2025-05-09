@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -171,6 +173,7 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -344,18 +347,14 @@ fun HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .weight(1f),
+                                        .height(200.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("Brak leków. Dodaj swój pierwszy lek.")
                                 }
                             } else {
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                ) {
-                                    items(leki) { lek ->
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    leki.forEach { lek ->
                                         LekItem(
                                             lek = lek,
                                             onStatusChanged = { lekViewModel.toggleLekStatus(lek) },
@@ -366,6 +365,7 @@ fun HomeScreen(
                             }
                             
                             if (leki.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = stringResource(R.string.swipe_right_hint),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -384,6 +384,7 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -399,7 +400,7 @@ fun HomeScreen(
                             )
                             
                             if (leki.isEmpty()) {
-                                Spacer(modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Text(
                                     text = stringResource(R.string.no_medicines_calendar),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -409,10 +410,10 @@ fun HomeScreen(
                                         .fillMaxWidth(),
                                     textAlign = TextAlign.Center
                                 )
-                                Spacer(modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.height(32.dp))
                             }
                             
-                            Spacer(modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.height(24.dp))
                             
                             // Updated hint to swipe in either direction
                             Text(
@@ -424,6 +425,9 @@ fun HomeScreen(
                                     .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
+                            
+                            // Extra space at bottom to ensure scrolling works correctly
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                     
@@ -432,6 +436,7 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -614,7 +619,7 @@ fun HomeScreen(
                                 }
                             }
                             
-                            Spacer(modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.height(24.dp))
                             
                             Text(
                                 text = "Przesuń w prawo, aby wrócić do kalendarza",
@@ -625,6 +630,9 @@ fun HomeScreen(
                                     .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
+                            
+                            // Extra space at bottom to ensure scrolling works correctly
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
