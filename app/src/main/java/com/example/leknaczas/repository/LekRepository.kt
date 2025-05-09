@@ -73,7 +73,7 @@ class LekRepository : ILekRepository {
             return ""
         }
 
-        val lek = Lek(id = "", nazwa = nazwa, przyjety = false)
+        val lek = Lek(id = "", nazwa = nazwa, _przyjety = false)
         return try {
             userLekiCollection?.add(lek)?.await()?.id ?: ""
         } catch (e: Exception) {
@@ -98,7 +98,7 @@ class LekRepository : ILekRepository {
             czestotliwosc = czestotliwosc, 
             ilosc = ilosc,
             jednostka = jednostka,
-            przyjety = false
+            _przyjety = false
         )
         
         return try {
@@ -121,7 +121,7 @@ class LekRepository : ILekRepository {
             czestotliwosc = czestotliwosc, 
             ilosc = ilosc,
             jednostka = jednostka,
-            przyjety = false
+            _przyjety = false
         )
         
         return try {
