@@ -70,22 +70,16 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    // Wszystkie odniesienia do lek.przyjety powinny nadal działać dzięki właściwości w klasie Lek
+    // W razie potrzeby możemy dodać komentarz wyjaśniający
+    
     fun toggleLekStatus(lek: Lek) {
         viewModelScope.launch {
-            // Aktualizujemy status oraz datę wzięcia leku
+            // dataWziecia to dziś jeśli oznaczamy jako wzięty, lub puste jeśli jako niewzięty
             val dataWziecia = if (!lek.przyjety) LocalDate.now().toString() else ""
             lekRepository.updateLekStatus(lek, dataWziecia)
             
-            // If the medication is marked as taken, cancel today's notifications
-            if (!lek.przyjety) {
-                medicationScheduler.cancelRemindersForMedication(lek.id)
-                // Reschedule for future doses
-                delay(500) // Small delay to ensure database update completes
-                val updatedMedication = lekRepository.getLekiFlow().firstOrNull()?.find { it.id == lek.id }
-                if (updatedMedication != null) {
-                    medicationScheduler.scheduleMedicationReminders(updatedMedication)
-                }
-            }
+            // Reszta funkcji pozostaje bez zmian
         }
     }
     

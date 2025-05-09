@@ -135,20 +135,30 @@ class LekRepository : ILekRepository {
     override suspend fun updateLekStatus(lek: Lek) {
         updateLekStatus(lek, "")
     }
-    
+
     override suspend fun updateLekStatus(lek: Lek, dataWziecia: String) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
 
         try {
-            val updates = hashMapOf<String, Any>(
-                "przyjety" to !lek.przyjety
-            )
+            val nowyStatus = !lek.przyjety
+            val aktualnePrzyjecia = lek.przyjecia.toMutableMap()
             
-            if (dataWziecia.isNotEmpty()) {
-                updates["dataWziecia"] = dataWziecia
+            if (dataWziecia.isNotEmpty() && nowyStatus) {
+                // Jeśli oznaczamy jako wzięty z konkretną datą
+                aktualnePrzyjecia[dataWziecia] = true
+            } else if (dataWziecia.isEmpty()) {
+                // Jeśli przełączamy status dzisiaj
+                val dzisiaj = java.time.LocalDate.now().toString()
+                aktualnePrzyjecia[dzisiaj] = nowyStatus
             }
+            
+            val updates = hashMapOf<String, Any>(
+                "przyjecia" to aktualnePrzyjecia,
+                "_przyjety" to nowyStatus,
+                "_dataWziecia" to (if (nowyStatus && dataWziecia.isNotEmpty()) dataWziecia else "")
+            )
             
             userLekiCollection?.document(lek.id)?.update(updates)?.await()
         } catch (e: Exception) {
@@ -172,17 +182,23 @@ class LekRepository : ILekRepository {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
+
         try {
             // Pobierz aktualną mapę przyjęć
             val docRef = userLekiCollection?.document(lekId)
             val snapshot = docRef?.get()?.await()
-            val lek = snapshot?.toObject(com.example.leknaczas.model.Lek::class.java)
+            val lek = snapshot?.toObject(Lek::class.java)
             val aktualnePrzyjecia = lek?.przyjecia?.toMutableMap() ?: mutableMapOf()
+            
+            // Oznacz jako wzięty dla wskazanej daty
             aktualnePrzyjecia[dataWziecia] = true
-
+            
             val updates = hashMapOf<String, Any>(
-                "przyjecia" to aktualnePrzyjecia
+                "przyjecia" to aktualnePrzyjecia,
+                "_przyjety" to true,
+                "_dataWziecia" to dataWziecia
             )
+            
             docRef?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error marking lek as taken", e)
@@ -193,16 +209,26 @@ class LekRepository : ILekRepository {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
+
         try {
             val docRef = userLekiCollection?.document(lekId)
             val snapshot = docRef?.get()?.await()
-            val lek = snapshot?.toObject(com.example.leknaczas.model.Lek::class.java)
+            val lek = snapshot?.toObject(Lek::class.java)
             val aktualnePrzyjecia = lek?.przyjecia?.toMutableMap() ?: mutableMapOf()
-            aktualnePrzyjecia[dataWziecia] = false
-
-            val updates = hashMapOf<String, Any>(
-                "przyjecia" to aktualnePrzyjecia
-            )
+            
+            if (dataWziecia.isNotEmpty()) {
+                // Oznacz jako niewzięty dla wskazanej daty
+                aktualnePrzyjecia[dataWziecia] = false
+            }
+            
+            val updates = hashMapOf<String, Any>("przyjecia" to aktualnePrzyjecia)
+            
+            // Aktualizuj pola kompatybilności tylko jeśli modyfikujemy aktualną datę wzięcia
+            if (lek?.dataWziecia == dataWziecia || dataWziecia.isEmpty()) {
+                updates["_przyjety"] = false
+                updates["_dataWziecia"] = ""
+            }
+            
             docRef?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error marking lek as not taken", e)

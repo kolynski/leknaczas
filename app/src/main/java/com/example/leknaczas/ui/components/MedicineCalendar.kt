@@ -570,33 +570,20 @@ private fun determineMedicationsForDay(date: LocalDate, medications: List<Lek>):
         // Check if this medication should be scheduled for this date based on frequency
         val shouldBeScheduled = isScheduledForDate(date, lek.czestotliwosc)
         
-        if (shouldBeScheduled) {
-            // First check if the medication has a specific status for this date
-            if (lek.dataWziecia.isNotEmpty()) {
-                try {
-                    val takenDate = LocalDate.parse(lek.dataWziecia, formatter)
-                    if (takenDate == date && lek.przyjety) {
-                        // Medication was taken on this date
-                        resultList.add(MedicationScheduleInfo(lek, MedicineStatus.TAKEN))
-                        return@forEach
-                    }
-                } catch (e: Exception) {
-                    // Handle parsing error
-                }
-            }
-            
-            // If we reach here, the medication wasn't marked as taken on this date
-            
-            // For today - show as NOT_TAKEN
+        // Sprawdź czy lek ma określony status dla tego dnia
+        val statusForDate = lek.przyjecia[date.toString()]
+        if (statusForDate != null) {
+            // Mamy określony status dla tego dnia
+            val status = if (statusForDate) MedicineStatus.TAKEN else MedicineStatus.NOT_TAKEN
+            resultList.add(MedicationScheduleInfo(lek, status))
+            return@forEach
+        } else if (shouldBeScheduled) {
+            // Jeśli powinien być zaplanowany, ale nie ma statusu
             if (date == today) {
                 resultList.add(MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN))
-            } 
-            // For past dates - show as NOT_TAKEN (missed)
-            else if (date.isBefore(today)) {
+            } else if (date.isBefore(today)) {
                 resultList.add(MedicationScheduleInfo(lek, MedicineStatus.NOT_TAKEN))
-            }
-            // For future dates - show as scheduled
-            else {
+            } else {
                 resultList.add(MedicationScheduleInfo(lek, MedicineStatus.SCHEDULED))
             }
         }
