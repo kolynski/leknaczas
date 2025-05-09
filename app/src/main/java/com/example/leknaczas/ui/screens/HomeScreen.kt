@@ -567,68 +567,6 @@ fun HomeScreen(
                             }
 
                             Spacer(modifier = Modifier.height(24.dp))
-
-                            // Przycisk testowy do powiadomień
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "Opcje testowe",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
-                                    
-                                    // Wyświetl tylko jeśli są jakieś leki
-                                    if (leki.isNotEmpty()) {
-                                        val context = LocalContext.current
-                                        
-                                        Button(
-                                            onClick = {
-                                                // Użyj pierwszego dostępnego leku do testowania powiadomienia
-                                                val testLek = leki.first()
-                                                val notificationService = NotificationService(context)
-                                                notificationService.showMedicationReminder(testLek)
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 8.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.secondary
-                                            )
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Notifications,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Testuj powiadomienie")
-                                            }
-                                        }
-                                    } else {
-                                        Text(
-                                            text = "Dodaj lek, aby testować powiadomienia",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            Spacer(modifier = Modifier.height(24.dp))
                             
                             Text(
                                 text = "Przesuń w prawo, aby wrócić do kalendarza",

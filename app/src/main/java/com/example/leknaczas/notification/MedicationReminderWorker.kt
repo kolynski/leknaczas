@@ -4,14 +4,12 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.leknaczas.LekNaCzasApp
 import com.example.leknaczas.model.Lek
 import com.example.leknaczas.repository.LekRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 class MedicationReminderWorker(
@@ -44,15 +42,21 @@ class MedicationReminderWorker(
                 return@withContext Result.failure()
             }
             
-            // Check if the medication is already taken today
-            if (lek.przyjety && lek.dataWziecia == LocalDate.now().toString()) {
-                Log.d(TAG, "Medication ${lek.nazwa} already taken today")
-                return@withContext Result.success()
-            }
+            // Current date as string
+            val today = LocalDate.now().toString()
             
-            // Show notification
-            val notificationService = NotificationService(applicationContext)
-            notificationService.showMedicationReminder(lek)
+            // Check if the medication is already taken today
+            val takenToday = lek.przyjecia[today] == true
+            
+            // Only send notification if medication has not been taken today
+            if (!takenToday) {
+                // Show notification
+                val notificationService = NotificationService(applicationContext)
+                notificationService.showMedicationReminder(lek)
+                Log.d(TAG, "Sending notification for ${lek.nazwa} - not taken today")
+            } else {
+                Log.d(TAG, "Medication ${lek.nazwa} already taken today - skipping notification")
+            }
             
             return@withContext Result.success()
         } catch (e: Exception) {
