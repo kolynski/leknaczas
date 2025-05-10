@@ -34,6 +34,7 @@ import com.example.leknaczas.viewmodel.LekViewModel
 import com.example.leknaczas.notification.NotificationService
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.DayOfWeek  // Dodaj ten import
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -652,7 +653,7 @@ fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
     
     while (true) {
         if (areAllMedicationsTaken(checkDate)) {
-            currentStreak++
+            currentStreak++ 
             checkDate = checkDate.minusDays(1)
         } else {
             break
