@@ -398,10 +398,15 @@ fun HomeScreen(
                                 medications = leki,
                                 onMedicationStatusChange = { lek, dataWziecia ->
                                     coroutineScope.launch {
-                                        if (dataWziecia.isNotEmpty()) {
+                                        if (dataWziecia.contains(":not_taken")) {
+                                            // Jeśli zawiera marker "not_taken", oznaczamy jako niewzięty dla wskazanej daty
+                                            val actualDate = dataWziecia.split(":")[0]
+                                            lekViewModel.markAsNotTaken(lek, actualDate)
+                                        } else if (dataWziecia.isNotEmpty()) {
                                             lekViewModel.markAsTakenOnDate(lek, dataWziecia)
                                         } else {
-                                            lekViewModel.markAsNotTaken(lek, dataWziecia)
+                                            // Przypadek dla pustego ciągu (stara logika - może się jeszcze przydać)
+                                            lekViewModel.markAsNotTaken(lek, "")
                                         }
                                     }
                                 },

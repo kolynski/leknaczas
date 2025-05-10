@@ -302,8 +302,9 @@ fun MedicineCalendar(
             dismissButton = {
                 OutlinedButton(
                     onClick = { 
-                        // For NOT_TAKEN, we set the date to empty
-                        onMedicationStatusChange(med.lek, "")
+                        // Zamiast pustego ciągu, przekazujemy konkretną datę
+                        // ale z flagą informującą, że lek nie został wzięty
+                        onMedicationStatusChange(med.lek, selectedDate.toString() + ":not_taken")
                         showStatusDialog = false
                     }
                 ) {

@@ -223,8 +223,9 @@ class LekRepository : ILekRepository {
             
             val updates = hashMapOf<String, Any>("przyjecia" to aktualnePrzyjecia)
             
-            // Aktualizuj pola kompatybilności tylko jeśli modyfikujemy aktualną datę wzięcia
-            if (lek?.dataWziecia == dataWziecia || dataWziecia.isEmpty()) {
+            // Aktualizuj pola kompatybilności tylko dla dzisiaj
+            val today = java.time.LocalDate.now().toString()
+            if (dataWziecia == today || dataWziecia.isEmpty()) {
                 updates["_przyjety"] = false
                 updates["_dataWziecia"] = ""
             }
