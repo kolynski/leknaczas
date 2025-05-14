@@ -19,8 +19,14 @@
     <string name="medicine_unit">Jednostka</string>
     <string name="tab_medicines">Leki</string>
     <string name="tab_calendar">Kalendarz</string>
+    <string name="tab_streaks">Statystyki</string>
     <string name="swipe_right_hint">Przesuń w prawo, aby zobaczyć kalendarz</string>
     <string name="swipe_left_hint">Przesuń w lewo, aby wrócić do listy leków</string>
     <string name="no_medicines_calendar">Brak leków do wyświetlenia w kalendarzu</string>
     <string name="delete_medicine">Usuń lek</string>
+    <string name="notification_channel_name">Przypomnienia o lekach</string>
+    <string name="notification_channel_description">Przypomnienia o konieczności wzięcia leków o określonych porach</string>
+    <string name="medication_reminder_title">Czas na lek!</string>
+    <string name="medication_reminder_message">Pamiętaj o wzięciu leku: %1$s (%2$s %3$s)</string>
+    <string name="take_medication">Weź lek</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.example.leknaczas
 
 import android.app.Application
+import com.example.leknaczas.notification.NotificationService
 import com.example.leknaczas.repository.AuthRepository
 import com.example.leknaczas.repository.IAuthRepository
 import com.example.leknaczas.repository.ILekRepository
@@ -19,6 +20,9 @@ class LekNaCzasApp : Application() {
             FirebaseApp.initializeApp(this)
             authRepository = AuthRepository()
             lekRepository = LekRepository()
+            
+            // Create the notification channel
+            NotificationService.createNotificationChannel(this)
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException("Błąd inicjalizacji Firebase: ${e.message}")

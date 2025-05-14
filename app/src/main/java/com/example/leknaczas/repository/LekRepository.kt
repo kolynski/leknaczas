@@ -73,7 +73,7 @@ class LekRepository : ILekRepository {
             return ""
         }
 
-        val lek = Lek(id = "", nazwa = nazwa, przyjety = false)
+        val lek = Lek(id = "", nazwa = nazwa, _przyjety = false)
         return try {
             userLekiCollection?.add(lek)?.await()?.id ?: ""
         } catch (e: Exception) {
@@ -98,7 +98,7 @@ class LekRepository : ILekRepository {
             czestotliwosc = czestotliwosc, 
             ilosc = ilosc,
             jednostka = jednostka,
-            przyjety = false
+            _przyjety = false
         )
         
         return try {
@@ -121,7 +121,7 @@ class LekRepository : ILekRepository {
             czestotliwosc = czestotliwosc, 
             ilosc = ilosc,
             jednostka = jednostka,
-            przyjety = false
+            _przyjety = false
         )
         
         return try {
@@ -135,20 +135,30 @@ class LekRepository : ILekRepository {
     override suspend fun updateLekStatus(lek: Lek) {
         updateLekStatus(lek, "")
     }
-    
+
     override suspend fun updateLekStatus(lek: Lek, dataWziecia: String) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
 
         try {
-            val updates = hashMapOf<String, Any>(
-                "przyjety" to !lek.przyjety
-            )
+            val nowyStatus = !lek.przyjety
+            val aktualnePrzyjecia = lek.przyjecia.toMutableMap()
             
-            if (dataWziecia.isNotEmpty()) {
-                updates["dataWziecia"] = dataWziecia
+            if (dataWziecia.isNotEmpty() && nowyStatus) {
+                // Jeśli oznaczamy jako wzięty z konkretną datą
+                aktualnePrzyjecia[dataWziecia] = true
+            } else if (dataWziecia.isEmpty()) {
+                // Jeśli przełączamy status dzisiaj
+                val dzisiaj = java.time.LocalDate.now().toString()
+                aktualnePrzyjecia[dzisiaj] = nowyStatus
             }
+            
+            val updates = hashMapOf<String, Any>(
+                "przyjecia" to aktualnePrzyjecia,
+                "_przyjety" to nowyStatus,
+                "_dataWziecia" to (if (nowyStatus && dataWziecia.isNotEmpty()) dataWziecia else "")
+            )
             
             userLekiCollection?.document(lek.id)?.update(updates)?.await()
         } catch (e: Exception) {
@@ -165,6 +175,64 @@ class LekRepository : ILekRepository {
             userLekiCollection?.document(lekId)?.delete()?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error deleting lek", e)
+        }
+    }
+
+    suspend fun markLekAsTaken(lekId: String, dataWziecia: String) {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+
+        try {
+            // Pobierz aktualną mapę przyjęć
+            val docRef = userLekiCollection?.document(lekId)
+            val snapshot = docRef?.get()?.await()
+            val lek = snapshot?.toObject(Lek::class.java)
+            val aktualnePrzyjecia = lek?.przyjecia?.toMutableMap() ?: mutableMapOf()
+            
+            // Oznacz jako wzięty dla wskazanej daty
+            aktualnePrzyjecia[dataWziecia] = true
+            
+            val updates = hashMapOf<String, Any>(
+                "przyjecia" to aktualnePrzyjecia,
+                "_przyjety" to true,
+                "_dataWziecia" to dataWziecia
+            )
+            
+            docRef?.update(updates)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error marking lek as taken", e)
+        }
+    }
+
+    suspend fun markLekAsNotTaken(lekId: String, dataWziecia: String) {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+
+        try {
+            val docRef = userLekiCollection?.document(lekId)
+            val snapshot = docRef?.get()?.await()
+            val lek = snapshot?.toObject(Lek::class.java)
+            val aktualnePrzyjecia = lek?.przyjecia?.toMutableMap() ?: mutableMapOf()
+            
+            if (dataWziecia.isNotEmpty()) {
+                // Oznacz jako niewzięty dla wskazanej daty
+                aktualnePrzyjecia[dataWziecia] = false
+            }
+            
+            val updates = hashMapOf<String, Any>("przyjecia" to aktualnePrzyjecia)
+            
+            // Aktualizuj pola kompatybilności tylko dla dzisiaj
+            val today = java.time.LocalDate.now().toString()
+            if (dataWziecia == today || dataWziecia.isEmpty()) {
+                updates["_przyjety"] = false
+                updates["_dataWziecia"] = ""
+            }
+            
+            docRef?.update(updates)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error marking lek as not taken", e)
         }
     }
 }

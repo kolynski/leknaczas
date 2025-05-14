@@ -6,32 +6,41 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.leknaczas.R
+import com.example.leknaczas.model.Lek
 import com.example.leknaczas.ui.components.LekItem
 import com.example.leknaczas.ui.components.MedicineCalendar
+import com.example.leknaczas.ui.components.StreakCard
 import com.example.leknaczas.viewmodel.AuthViewModel
 import com.example.leknaczas.viewmodel.LekViewModel
+import com.example.leknaczas.notification.NotificationService
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.DayOfWeek  // Dodaj ten import
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @OptIn(
     ExperimentalMaterial3Api::class, 
-    ExperimentalFoundationApi::class, 
-    ExperimentalMaterialApi::class
+    ExperimentalFoundationApi::class
 )
 @Composable
 fun HomeScreen(
@@ -47,12 +56,6 @@ fun HomeScreen(
     var nowyLekIlosc by remember { mutableStateOf("1") }
     var nowyLekJednostka by remember { mutableStateOf("tabletka") }
     
-    // Pull-to-refresh state
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = isLoading,
-        onRefresh = { lekViewModel.refreshLeki() }
-    )
-    
     // Opcje dla wybieranych wartości
     val czestotliwosciOptions = listOf("1 x dziennie", "2 x dziennie", "3 x dziennie", "co drugi dzień", "raz w tygodniu")
     val iloscOptions = listOf("1", "2", "3", "1/2", "1/4")
@@ -63,7 +66,7 @@ fun HomeScreen(
     var expandedJednostka by remember { mutableStateOf(false) }
     
     // Inicjalizacja pagerState dla przesuwania ekranów w poziomie
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     
     // Tworzenie zakresu korutyny dla operacji asynchronicznych
     val coroutineScope = rememberCoroutineScope()
@@ -72,7 +75,13 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         lekViewModel.refreshLeki()
     }
-    
+
+    // Calculate streak information
+    val streakInfo = calculateStreakInfo(leki)
+    val currentStreak = streakInfo.first
+    val longestStreak = streakInfo.second
+    val lastWeekAdherence = streakInfo.third
+
     Scaffold(
         topBar = {
             Column {
@@ -130,30 +139,42 @@ fun HomeScreen(
                         },
                         text = { Text(stringResource(R.string.tab_calendar)) }
                     )
+                    Tab(
+                        selected = pagerState.currentPage == 2,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(2)
+                            }
+                        },
+                        text = { Text(stringResource(R.string.tab_streaks)) }
+                    )
                 }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            verticalAlignment = Alignment.Top
-        ) { page ->
-            when (page) {
-                // Page 0: Medicine List
-                0 -> {
-                    // Wrap everything in a Box with pullRefresh modifier to enable pull-to-refresh
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pullRefresh(pullRefreshState)
-                    ) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                verticalAlignment = Alignment.Top
+            ) { page ->
+                when (page) {
+                    // Page 0: Medicine List
+                    0 -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -323,22 +344,18 @@ fun HomeScreen(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                             
-                            if (leki.isEmpty() && !isLoading) {
+                            if (leki.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .weight(1f),
+                                        .height(200.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("Brak leków. Dodaj swój pierwszy lek.")
                                 }
                             } else {
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                ) {
-                                    items(leki) { lek ->
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    leki.forEach { lek ->
                                         LekItem(
                                             lek = lek,
                                             onStatusChanged = { lekViewModel.toggleLekStatus(lek) },
@@ -349,6 +366,7 @@ fun HomeScreen(
                             }
                             
                             if (leki.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = stringResource(R.string.swipe_right_hint),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -360,27 +378,14 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        
-                        // Pull-to-refresh indicator at the top center
-                        PullRefreshIndicator(
-                            refreshing = isLoading,
-                            state = pullRefreshState,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
                     }
-                }
-                
-                // Page 1: Calendar
-                1 -> {
-                    // Wrap the calendar page in a Box with pullRefresh modifier as well
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pullRefresh(pullRefreshState)
-                    ) {
+                    
+                    // Page 1: Calendar
+                    1 -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -392,11 +397,25 @@ fun HomeScreen(
                             
                             MedicineCalendar(
                                 medications = leki,
+                                onMedicationStatusChange = { lek, dataWziecia ->
+                                    coroutineScope.launch {
+                                        if (dataWziecia.contains(":not_taken")) {
+                                            // Jeśli zawiera marker "not_taken", oznaczamy jako niewzięty dla wskazanej daty
+                                            val actualDate = dataWziecia.split(":")[0]
+                                            lekViewModel.markAsNotTaken(lek, actualDate)
+                                        } else if (dataWziecia.isNotEmpty()) {
+                                            lekViewModel.markAsTakenOnDate(lek, dataWziecia)
+                                        } else {
+                                            // Przypadek dla pustego ciągu (stara logika - może się jeszcze przydać)
+                                            lekViewModel.markAsNotTaken(lek, "")
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             )
                             
                             if (leki.isEmpty()) {
-                                Spacer(modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Text(
                                     text = stringResource(R.string.no_medicines_calendar),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -406,31 +425,289 @@ fun HomeScreen(
                                         .fillMaxWidth(),
                                     textAlign = TextAlign.Center
                                 )
-                                Spacer(modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.height(32.dp))
                             }
                             
-                            Spacer(modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.height(24.dp))
                             
+                            // Updated hint to swipe in either direction
                             Text(
-                                text = stringResource(R.string.swipe_left_hint),
+                                text = "Przesuń w lewo, aby zobaczyć statystyki, lub w prawo, aby wrócić do leków",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
-                                        .padding(top = 16.dp, bottom = 8.dp)
-                                        .fillMaxWidth(),
+                                    .padding(top = 16.dp, bottom = 8.dp)
+                                    .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
+                            
+                            // Extra space at bottom to ensure scrolling works correctly
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-                        
-                        // Pull-to-refresh indicator at the top center for calendar page too
-                        PullRefreshIndicator(
-                            refreshing = isLoading,
-                            state = pullRefreshState,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
+                    }
+                    
+                    // Page 2: Streak Stats
+                    2 -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Twoje osiągnięcia",
+                                style = MaterialTheme.typography.headlineSmall,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                            
+                            // Current streak card
+                            StreakCard(
+                                title = "Aktualna seria",
+                                value = currentStreak,
+                                description = "dni pod rząd",
+                                icon = Icons.Default.LocalFireDepartment,
+                                iconTint = if (currentStreak >= 3) Color(0xFFFF9800) else Color.Gray,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            )
+                            
+                            // Longest streak card
+                            StreakCard(
+                                title = "Najdłuższa seria",
+                                value = longestStreak,
+                                description = "dni pod rząd",
+                                icon = Icons.Default.LocalFireDepartment,
+                                iconTint = if (longestStreak >= 7) Color(0xFFFF5722) else Color(0xFFFF9800),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            )
+                            
+                            // Last week adherence card
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Przyjmowanie leków w ostatnim tygodniu",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        val percentage = (lastWeekAdherence * 100).toInt()
+                                        Text(
+                                            text = "$percentage%",
+                                            style = MaterialTheme.typography.displayMedium,
+                                            color = when {
+                                                percentage >= 90 -> Color(0xFF4CAF50)
+                                                percentage >= 75 -> Color(0xFFFFC107)
+                                                else -> Color(0xFFF44336)
+                                            }
+                                        )
+                                        
+                                        LinearProgressIndicator(
+                                            progress = lastWeekAdherence,
+                                            modifier = Modifier
+                                                .align(Alignment.CenterVertically)
+                                                .height(12.dp)
+                                                .width(200.dp),
+                                            color = when {
+                                                lastWeekAdherence >= 0.9f -> Color(0xFF4CAF50)
+                                                lastWeekAdherence >= 0.75f -> Color(0xFFFFC107)
+                                                else -> Color(0xFFF44336)
+                                            }
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    
+                                    Text(
+                                        text = "Staraj się przyjmować leki regularnie dla lepszych efektów leczenia",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            
+                            // Motivational message based on streak
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    val message = when {
+                                        currentStreak == 0 -> "Zacznij swoją serię już dzisiaj!"
+                                        currentStreak < 3 -> "Dobry początek! Kontynuuj serię!"
+                                        currentStreak < 7 -> "Świetnie! Utrzymaj serię przez tydzień!"
+                                        currentStreak < 14 -> "Imponujące! Jesteś konsekwentny w dbaniu o swoje zdrowie!"
+                                        currentStreak < 30 -> "Niesamowite! Twoja wytrwałość jest godna podziwu!"
+                                        else -> "Mistrz! Twoja dyscyplina jest niezrównana!"
+                                    }
+                                    
+                                    Text(
+                                        text = message,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            Text(
+                                text = "Przesuń w prawo, aby wrócić do kalendarza",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .padding(top = 16.dp, bottom = 8.dp)
+                                    .fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                            
+                            // Extra space at bottom to ensure scrolling works correctly
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+// Zmodyfikowana funkcja calculateStreakInfo
+fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
+    if (leki.isEmpty()) {
+        return Triple(0, 0, 0f)
+    }
+    
+    val today = LocalDate.now()
+    val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+    
+    // Dla każdego dnia przechowujemy mapę: data -> (zaplanowane leki, wzięte leki)
+    val dateToMedicationStatus = mutableMapOf<LocalDate, Pair<Int, Int>>()
+    
+    // Sprawdzamy wszystkie leki i wszystkie daty
+    val allDates = mutableSetOf<LocalDate>()
+    
+    // Zbieramy informacje o wszystkich lekach dla wszystkich dat
+    for (lek in leki) {
+        // Sprawdzamy wszystkie daty od początku roku do dzisiaj
+        val startDate = today.withDayOfYear(1)
+        var checkDate = startDate
+        
+        while (!checkDate.isAfter(today)) {
+            val dateStr = checkDate.toString()
+            allDates.add(checkDate)
+            
+            // Czy lek powinien być zaplanowany na ten dzień
+            val shouldBeScheduled = isScheduledForDate(checkDate, lek.czestotliwosc)
+            
+            if (shouldBeScheduled) {
+                // Pobierz aktualny status dla tej daty
+                val statusForDate = dateToMedicationStatus.getOrDefault(checkDate, Pair(0, 0))
+                
+                // Zwiększ liczbę zaplanowanych leków
+                val scheduledCount = statusForDate.first + 1
+                
+                // Sprawdź, czy lek został wzięty w tym dniu
+                val taken = lek.przyjecia[dateStr] == true
+                val takenCount = statusForDate.second + (if (taken) 1 else 0)
+                
+                // Aktualizuj status dla tej daty
+                dateToMedicationStatus[checkDate] = Pair(scheduledCount, takenCount)
+            }
+            
+            checkDate = checkDate.plusDays(1)
+        }
+    }
+    
+    // Funkcja pomocnicza do sprawdzenia czy wszystkie zaplanowane leki na dany dzień zostały wzięte
+    fun areAllMedicationsTaken(date: LocalDate): Boolean {
+        val status = dateToMedicationStatus[date] ?: return false
+        return status.first > 0 && status.first == status.second
+    }
+    
+    // Oblicz aktualną serię
+    var currentStreak = 0
+    var checkDate = today
+    
+    while (true) {
+        if (areAllMedicationsTaken(checkDate)) {
+            currentStreak++ 
+            checkDate = checkDate.minusDays(1)
+        } else {
+            break
+        }
+    }
+    
+    // Oblicz najdłuższą serię
+    var longestStreak = 0
+    var currentLongestStreak = 0
+    var prevDate: LocalDate? = null
+    
+    for (date in allDates.sortedBy { it }) {
+        if (areAllMedicationsTaken(date)) {
+            if (prevDate == null || ChronoUnit.DAYS.between(prevDate, date) == 1L) {
+                currentLongestStreak++
+            } else {
+                currentLongestStreak = 1
+            }
+            
+            longestStreak = maxOf(longestStreak, currentLongestStreak)
+            prevDate = date
+        } else {
+            currentLongestStreak = 0
+            prevDate = null
+        }
+    }
+    
+    // Oblicz tygodniową skuteczność
+    var takenDays = 0
+    var totalDays = 0
+    
+    for (i in 0..6) {
+        val date = today.minusDays(i.toLong())
+        val status = dateToMedicationStatus[date]
+        
+        if (status != null && status.first > 0) {
+            totalDays++
+            if (status.first == status.second) {
+                takenDays++
+            }
+        }
+    }
+    
+    val lastWeekAdherence = if (totalDays > 0) takenDays.toFloat() / totalDays else 0f
+    
+    return Triple(currentStreak, longestStreak, lastWeekAdherence)
+}
+
+// Funkcja pomocnicza do sprawdzenia, czy lek powinien być zaplanowany na określony dzień
+private fun isScheduledForDate(date: LocalDate, frequency: String): Boolean {
+    return when (frequency) {
+        "1 x dziennie", "2 x dziennie", "3 x dziennie" -> true
+        "co drugi dzień" -> ChronoUnit.DAYS.between(LocalDate.of(date.year, 1, 1), date) % 2 == 0L
+        "raz w tygodniu" -> date.dayOfWeek == DayOfWeek.MONDAY
+        else -> true
     }
 }
