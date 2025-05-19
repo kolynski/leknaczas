@@ -114,14 +114,25 @@ class LekRepository : ILekRepository {
             return ""
         }
 
+        val iloscNaDawke = try {
+            when (ilosc) {
+                "1/2" -> 0.5f
+                "1/4" -> 0.25f
+                else -> ilosc.toFloatOrNull() ?: 1.0f
+            }
+        } catch (e: Exception) {
+            1.0f
+        }
+
         val lek = Lek(
             id = "", 
             nazwa = nazwa,
-            dawka = "", // Empty since we don't need it anymore
             czestotliwosc = czestotliwosc, 
             ilosc = ilosc,
             jednostka = jednostka,
-            _przyjety = false
+            _przyjety = false,
+            dostepneIlosc = 0,
+            iloscNaDawke = iloscNaDawke
         )
         
         return try {
@@ -233,6 +244,45 @@ class LekRepository : ILekRepository {
             docRef?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error marking lek as not taken", e)
+        }
+    }
+
+    suspend fun updateLekSupply(lekId: String, nowaIlosc: Int) {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+
+        try {
+            val updates = hashMapOf<String, Any>(
+                "dostepneIlosc" to nowaIlosc
+            )
+            
+            userLekiCollection?.document(lekId)?.update(updates)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error updating medication supply", e)
+        }
+    }
+
+    suspend fun updateLekSupplyAndStatus(lekId: String, nowaIlosc: Int, dataWziecia: String) {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return
+        }
+
+        try {
+            val updates = hashMapOf<String, Any>(
+                "dostepneIlosc" to nowaIlosc,
+                "_dataWziecia" to dataWziecia,
+                "_przyjety" to (dataWziecia.isNotEmpty())
+            )
+            
+            // Dodaj informację o przyjęciu do mapy przyjęć, jeśli data jest niepusta
+            if (dataWziecia.isNotEmpty()) {
+                updates["przyjecia.$dataWziecia"] = true
+            }
+            
+            userLekiCollection?.document(lekId)?.update(updates)?.await()
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error updating medication supply and status", e)
         }
     }
 }

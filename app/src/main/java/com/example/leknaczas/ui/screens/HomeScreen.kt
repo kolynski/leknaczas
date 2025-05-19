@@ -56,6 +56,12 @@ fun HomeScreen(
     var nowyLekIlosc by remember { mutableStateOf("1") }
     var nowyLekJednostka by remember { mutableStateOf("tabletka") }
     
+    // Dodaj te zmienne stanu na początku funkcji HomeScreen
+    var showSupplyDialog by remember { mutableStateOf(false) }
+    var selectedLek by remember { mutableStateOf<Lek?>(null) }
+    var noweOpakowanie by remember { mutableStateOf("") }
+    var iloscWSztukach by remember { mutableStateOf("") }
+    
     // Opcje dla wybieranych wartości
     val czestotliwosciOptions = listOf("1 x dziennie", "2 x dziennie", "3 x dziennie", "co drugi dzień", "raz w tygodniu")
     val iloscOptions = listOf("1", "2", "3", "1/2", "1/4")
@@ -359,7 +365,11 @@ fun HomeScreen(
                                         LekItem(
                                             lek = lek,
                                             onStatusChanged = { lekViewModel.toggleLekStatus(lek) },
-                                            onDelete = { lekViewModel.usunLek(lek) }
+                                            onDelete = { lekViewModel.usunLek(lek) },
+                                            onAddSupply = { 
+                                                selectedLek = it
+                                                showSupplyDialog = true
+                                            }
                                         )
                                     }
                                 }
@@ -591,6 +601,79 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    // Dialog do dodawania zapasu leku
+    if (showSupplyDialog && selectedLek != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showSupplyDialog = false
+                selectedLek = null
+                noweOpakowanie = ""
+                iloscWSztukach = ""
+            },
+            title = { Text("Dodaj zapas leku") },
+            text = {
+                Column {
+                    Text(
+                        text = "Dodaj nowe opakowanie leku ${selectedLek?.nazwa}",
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    OutlinedTextField(
+                        value = noweOpakowanie,
+                        onValueChange = { noweOpakowanie = it },
+                        label = { Text("Liczba opakowań") },
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                    
+                    OutlinedTextField(
+                        value = iloscWSztukach,
+                        onValueChange = { iloscWSztukach = it },
+                        label = { Text("Liczba sztuk w opakowaniu") },
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        val opakowanieCount = noweOpakowanie.toIntOrNull() ?: 0
+                        val sztukiCount = iloscWSztukach.toIntOrNull() ?: 0
+                        if (opakowanieCount > 0 && sztukiCount > 0 && selectedLek != null) {
+                            lekViewModel.dodajZapas(selectedLek!!, opakowanieCount * sztukiCount)
+                        }
+                        showSupplyDialog = false
+                        selectedLek = null
+                        noweOpakowanie = ""
+                        iloscWSztukach = ""
+                    },
+                    enabled = noweOpakowanie.isNotEmpty() && iloscWSztukach.isNotEmpty() &&
+                            (noweOpakowanie.toIntOrNull() ?: 0) > 0 &&
+                            (iloscWSztukach.toIntOrNull() ?: 0) > 0
+                ) {
+                    Text("Dodaj")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showSupplyDialog = false
+                        selectedLek = null
+                        noweOpakowanie = ""
+                        iloscWSztukach = ""
+                    }
+                ) {
+                    Text("Anuluj")
+                }
+            }
+        )
     }
 }
 

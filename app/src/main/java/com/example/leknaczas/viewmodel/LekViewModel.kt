@@ -75,11 +75,35 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
     
     fun toggleLekStatus(lek: Lek) {
         viewModelScope.launch {
-            // dataWziecia to dziś jeśli oznaczamy jako wzięty, lub puste jeśli jako niewzięty
-            val dataWziecia = if (!lek.przyjety) LocalDate.now().toString() else ""
-            lekRepository.updateLekStatus(lek, dataWziecia)
+            val nowyStatus = !lek.przyjety
+            val dataWziecia = if (nowyStatus) LocalDate.now().toString() else ""
             
-            // Reszta funkcji pozostaje bez zmian
+            // Jeśli lek jest oznaczany jako wzięty, zmniejsz dostępną ilość
+            if (nowyStatus && lek.dostepneIlosc > 0) {
+                val iloscNaDawke = try {
+                    when (lek.ilosc) {
+                        "1/2" -> 0.5f
+                        "1/4" -> 0.25f
+                        else -> lek.ilosc.toFloatOrNull() ?: 1.0f
+                    }
+                } catch (e: Exception) {
+                    1.0f
+                }
+                
+                // Zmniejsz dostępną ilość o dawkę
+                val nowaDostepnaIlosc = (lek.dostepneIlosc - iloscNaDawke).coerceAtLeast(0f).toInt()
+                lekRepository.updateLekSupplyAndStatus(lek.id, nowaDostepnaIlosc, dataWziecia)
+                
+                // Jeśli zapas się kończy (mniej niż 5 sztuk), pokaż powiadomienie
+                if (nowaDostepnaIlosc <= 5 && nowaDostepnaIlosc > 0) {
+                    val context = getApplication<Application>().applicationContext
+                    val notificationService = NotificationService(context)
+                    notificationService.showLowSupplyNotification(lek, nowaDostepnaIlosc)
+                }
+            } else {
+                // Po prostu zaktualizuj status, bez zmiany ilości
+                lekRepository.updateLekStatus(lek, dataWziecia)
+            }
         }
     }
     
@@ -104,6 +128,14 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
     fun markAsNotTaken(lek: Lek, date: String) {
         viewModelScope.launch {
             lekRepository.markLekAsNotTaken(lek.id, date)
+        }
+    }
+
+    // Dodaj nowe funkcje do klasy LekViewModel
+
+    fun dodajZapas(lek: Lek, iloscDoRozenia: Int) {
+        viewModelScope.launch {
+            lekRepository.updateLekSupply(lek.id, lek.dostepneIlosc + iloscDoRozenia)
         }
     }
 }

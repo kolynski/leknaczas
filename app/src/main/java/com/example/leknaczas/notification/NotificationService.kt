@@ -11,6 +11,9 @@ import androidx.core.app.NotificationManagerCompat
 import com.example.leknaczas.MainActivity
 import com.example.leknaczas.R
 import com.example.leknaczas.model.Lek
+import androidx.core.app.ActivityCompat
+import android.Manifest
+import android.content.pm.PackageManager
 
 class NotificationService(private val context: Context) {
 
@@ -92,6 +95,46 @@ class NotificationService(private val context: Context) {
             } catch (e: SecurityException) {
                 // Handle missing notification permission
                 e.printStackTrace()
+            }
+        }
+    }
+
+    fun showLowSupplyNotification(lek: Lek, remainingAmount: Int) {
+        val notificationId = NOTIFICATION_ID_PREFIX + 500 + lek.id.hashCode()
+
+        // Create an intent that will open the app when the notification is tapped
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("LEK_ID", lek.id)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Build the notification
+        val title = "Kończy się zapas leku"
+        val message = "Pozostało tylko $remainingAmount szt. leku ${lek.nazwa}. Pamiętaj, aby uzupełnić zapas."
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_medicine_notification)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        with(NotificationManagerCompat.from(context)) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                notify(notificationId, builder.build())
             }
         }
     }
