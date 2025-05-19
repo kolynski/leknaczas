@@ -40,6 +40,17 @@ import java.time.DayOfWeek  // Dodaj ten import
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
+// Dodaj na początku HomeScreen.kt, przed funkcją HomeScreen
+// Funkcja pomocnicza do sprawdzenia, czy lek powinien być zaplanowany na określony dzień
+fun isScheduledForDate(date: LocalDate, frequency: String): Boolean {
+    return when (frequency) {
+        "1 x dziennie", "2 x dziennie", "3 x dziennie" -> true
+        "co drugi dzień" -> ChronoUnit.DAYS.between(LocalDate.of(date.year, 1, 1), date) % 2 == 0L
+        "raz w tygodniu" -> date.dayOfWeek == DayOfWeek.MONDAY // Assume Monday is the day
+        else -> true // Default to scheduled if frequency is unknown
+    }
+}
+
 @OptIn(
     ExperimentalMaterial3Api::class, 
     ExperimentalFoundationApi::class
@@ -549,7 +560,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            )
+                            }
                             
                             // Motivational message based on streak
                             Card(
