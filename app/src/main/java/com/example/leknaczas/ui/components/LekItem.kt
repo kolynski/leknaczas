@@ -131,12 +131,10 @@ fun LekItem(
                                 }
                             },
                             enabled = lek.dostepneIlosc > 0 || !lek.przyjety
-                        )       )
-                    }       }
-                }       }
-            }       }
-        }       }
-    }    }
-
-
-}}
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
