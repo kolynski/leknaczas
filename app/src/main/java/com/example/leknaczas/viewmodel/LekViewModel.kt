@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import android.util.Log
 
 class LekViewModel(application: Application) : AndroidViewModel(application) {
     private val lekRepository = LekRepository()
@@ -53,7 +54,9 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
     fun dodajLek(nazwa: String, czestotliwosc: String, ilosc: String, jednostka: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            Log.d("LekViewModel", "Dodaję lek: $nazwa, $czestotliwosc, $ilosc, $jednostka")
             val lekId = lekRepository.addLek(nazwa, czestotliwosc, ilosc, jednostka)
+            Log.d("LekViewModel", "Utworzono lek z ID: $lekId")
             
             // If the medication was added successfully, schedule a notification
             if (lekId.isNotEmpty()) {
@@ -64,20 +67,22 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
                 val newMedication = lekRepository.getLekiFlow().firstOrNull()?.find { it.id == lekId }
                 if (newMedication != null) {
                     medicationScheduler.scheduleMedicationReminders(newMedication)
+                    Log.d("LekViewModel", "Zaplanowano powiadomienia dla nowego leku")
                 }
             }
             
+            // Odświeżamy listę leków, aby zobaczyć nowo dodany lek
+            refreshLeki()
             _isLoading.value = false
         }
     }
-    
-    // Wszystkie odniesienia do lek.przyjety powinny nadal działać dzięki właściwości w klasie Lek
-    // W razie potrzeby możemy dodać komentarz wyjaśniający
     
     fun toggleLekStatus(lek: Lek) {
         viewModelScope.launch {
             val nowyStatus = !lek.przyjety
             val dataWziecia = if (nowyStatus) LocalDate.now().toString() else ""
+            
+            Log.d("LekViewModel", "Zmiana statusu leku ${lek.nazwa} na $nowyStatus, data: $dataWziecia")
             
             // Jeśli lek jest oznaczany jako wzięty, zmniejsz dostępną ilość
             if (nowyStatus && lek.dostepneIlosc > 0) {
@@ -91,8 +96,12 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
                     1.0f
                 }
                 
+                Log.d("LekViewModel", "Dawka: $iloscNaDawke, dostępna ilość przed: ${lek.dostepneIlosc}")
+                
                 // Zmniejsz dostępną ilość o dawkę
                 val nowaDostepnaIlosc = (lek.dostepneIlosc - iloscNaDawke).coerceAtLeast(0f).toInt()
+                Log.d("LekViewModel", "Nowa dostępna ilość: $nowaDostepnaIlosc")
+                
                 lekRepository.updateLekSupplyAndStatus(lek.id, nowaDostepnaIlosc, dataWziecia)
                 
                 // Jeśli zapas się kończy (mniej niż 5 sztuk), pokaż powiadomienie
@@ -100,11 +109,16 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
                     val context = getApplication<Application>().applicationContext
                     val notificationService = NotificationService(context)
                     notificationService.showLowSupplyNotification(lek, nowaDostepnaIlosc)
+                    Log.d("LekViewModel", "Wysłano powiadomienie o niskim stanie leku")
                 }
             } else {
                 // Po prostu zaktualizuj status, bez zmiany ilości
                 lekRepository.updateLekStatus(lek, dataWziecia)
             }
+            
+            // Odświeżamy listę leków, aby zobaczyć zmiany
+            delay(500) // Krótkie opóźnienie, aby dać czas na zaktualizowanie bazy danych
+            refreshLeki()
         }
     }
     
@@ -115,28 +129,60 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
             
             // Delete the medication
             lekRepository.deleteLek(lek.id)
+            
+            // Odświeżamy listę leków po usunięciu
+            delay(500)
+            refreshLeki()
         }
     }
 
-    // Dodaj poniższe funkcje do klasy LekViewModel
-
     fun markAsTakenOnDate(lek: Lek, date: String) {
         viewModelScope.launch {
-            lekRepository.markLekAsTaken(lek.id, date)
+            Log.d("LekViewModel", "Oznaczanie leku ${lek.nazwa} jako wzięty na datę: $date")
+            
+            // Jeśli oznaczamy lek jako wzięty na dzisiaj, zmniejszamy też ilość
+            if (date == LocalDate.now().toString() && lek.dostepneIlosc > 0) {
+                val iloscNaDawke = try {
+                    when (lek.ilosc) {
+                        "1/2" -> 0.5f
+                        "1/4" -> 0.25f
+                        else -> lek.ilosc.toFloatOrNull() ?: 1.0f
+                    }
+                } catch (e: Exception) {
+                    1.0f
+                }
+                
+                val nowaDostepnaIlosc = (lek.dostepneIlosc - iloscNaDawke).coerceAtLeast(0f).toInt()
+                lekRepository.updateLekSupplyAndStatus(lek.id, nowaDostepnaIlosc, date)
+            } else {
+                lekRepository.markLekAsTaken(lek.id, date)
+            }
+            
+            // Odświeżamy listę leków po zmianie
+            delay(500)
+            refreshLeki()
         }
     }
 
     fun markAsNotTaken(lek: Lek, date: String) {
         viewModelScope.launch {
+            Log.d("LekViewModel", "Oznaczanie leku ${lek.nazwa} jako NIE wzięty na datę: $date")
             lekRepository.markLekAsNotTaken(lek.id, date)
+            
+            // Odświeżamy listę leków po zmianie
+            delay(500)
+            refreshLeki()
         }
     }
 
-    // Dodaj nowe funkcje do klasy LekViewModel
-
     fun dodajZapas(lek: Lek, iloscDoRozenia: Int) {
         viewModelScope.launch {
+            Log.d("LekViewModel", "Dodawanie zapasu dla ${lek.nazwa}: +$iloscDoRozenia, było: ${lek.dostepneIlosc}")
             lekRepository.updateLekSupply(lek.id, lek.dostepneIlosc + iloscDoRozenia)
+            
+            // Odświeżamy listę leków po dodaniu zapasu
+            delay(500)
+            refreshLeki()
         }
     }
 }

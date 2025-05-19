@@ -410,17 +410,13 @@ fun HomeScreen(
                             MedicineCalendar(
                                 medications = leki,
                                 onMedicationStatusChange = { lek, dataWziecia ->
-                                    coroutineScope.launch {
-                                        if (dataWziecia.contains(":not_taken")) {
-                                            // Jeśli zawiera marker "not_taken", oznaczamy jako niewzięty dla wskazanej daty
-                                            val actualDate = dataWziecia.split(":")[0]
-                                            lekViewModel.markAsNotTaken(lek, actualDate)
-                                        } else if (dataWziecia.isNotEmpty()) {
-                                            lekViewModel.markAsTakenOnDate(lek, dataWziecia)
-                                        } else {
-                                            // Przypadek dla pustego ciągu (stara logika - może się jeszcze przydać)
-                                            lekViewModel.markAsNotTaken(lek, "")
-                                        }
+                                    if (dataWziecia.contains(":not_taken")) {
+                                        // Jeśli zawiera marker "not_taken", oznaczamy jako niewzięty
+                                        val actualDate = dataWziecia.split(":")[0]
+                                        lekViewModel.markAsNotTaken(lek, actualDate)
+                                    } else {
+                                        // Inaczej oznaczamy jako wzięty
+                                        lekViewModel.markAsTakenOnDate(lek, dataWziecia)
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth()
@@ -553,7 +549,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
+                            )
                             
                             // Motivational message based on streak
                             Card(

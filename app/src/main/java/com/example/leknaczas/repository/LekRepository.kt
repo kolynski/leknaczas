@@ -195,7 +195,6 @@ class LekRepository : ILekRepository {
         }
 
         try {
-            // Pobierz aktualną mapę przyjęć
             val docRef = userLekiCollection?.document(lekId)
             val snapshot = docRef?.get()?.await()
             val lek = snapshot?.toObject(Lek::class.java)
@@ -205,11 +204,17 @@ class LekRepository : ILekRepository {
             aktualnePrzyjecia[dataWziecia] = true
             
             val updates = hashMapOf<String, Any>(
-                "przyjecia" to aktualnePrzyjecia,
-                "_przyjety" to true,
-                "_dataWziecia" to dataWziecia
+                "przyjecia" to aktualnePrzyjecia
             )
             
+            // Aktualizuj pola kompatybilności wstecznej tylko dla dzisiejszej daty
+            val today = LocalDate.now().toString()
+            if (dataWziecia == today) {
+                updates["_przyjety"] = true
+                updates["_dataWziecia"] = dataWziecia
+            }
+            
+            Log.d("LekRepository", "Oznaczenie leku $lekId jako wzięty dla daty: $dataWziecia")
             docRef?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error marking lek as taken", e)
@@ -270,16 +275,19 @@ class LekRepository : ILekRepository {
 
         try {
             val updates = hashMapOf<String, Any>(
-                "dostepneIlosc" to nowaIlosc,
-                "_dataWziecia" to dataWziecia,
-                "_przyjety" to (dataWziecia.isNotEmpty())
+                "dostepneIlosc" to nowaIlosc
             )
             
-            // Dodaj informację o przyjęciu do mapy przyjęć, jeśli data jest niepusta
             if (dataWziecia.isNotEmpty()) {
+                updates["_przyjety"] = true
+                updates["_dataWziecia"] = dataWziecia
                 updates["przyjecia.$dataWziecia"] = true
+            } else {
+                updates["_przyjety"] = false
+                updates["_dataWziecia"] = ""
             }
             
+            Log.d("LekRepository", "Aktualizacja leku $lekId: ilość=$nowaIlosc, data=$dataWziecia")
             userLekiCollection?.document(lekId)?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error updating medication supply and status", e)
