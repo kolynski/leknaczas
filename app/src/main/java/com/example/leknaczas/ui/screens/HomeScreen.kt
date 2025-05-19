@@ -36,11 +36,10 @@ import com.example.leknaczas.viewmodel.LekViewModel
 import com.example.leknaczas.notification.NotificationService
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.DayOfWeek  // Dodaj ten import
+import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-// Dodaj na początku HomeScreen.kt, przed funkcją HomeScreen
 // Funkcja pomocnicza do sprawdzenia, czy lek powinien być zaplanowany na określony dzień
 fun isScheduledForDate(date: LocalDate, frequency: String): Boolean {
     return when (frequency) {
@@ -49,6 +48,115 @@ fun isScheduledForDate(date: LocalDate, frequency: String): Boolean {
         "raz w tygodniu" -> date.dayOfWeek == DayOfWeek.MONDAY // Assume Monday is the day
         else -> true // Default to scheduled if frequency is unknown
     }
+}
+
+// Funkcja calculateStreakInfo musi być zdefiniowana przed HomeScreen, gdzie jest używana
+fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
+    if (leki.isEmpty()) {
+        return Triple(0, 0, 0f)
+    }
+    
+    val today = LocalDate.now()
+    val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+    
+    // Dla każdego dnia przechowujemy mapę: data -> (zaplanowane leki, wzięte leki)
+    val dateToMedicationStatus = mutableMapOf<LocalDate, Pair<Int, Int>>()
+    
+    // Zbieramy informacje o wszystkich lekach dla wszystkich dat
+    val allDates = mutableSetOf<LocalDate>()
+    
+    // Zbieramy informacje o wszystkich lekach dla wszystkich dat
+    for (lek in leki) {
+        // Sprawdzamy wszystkie daty od początku roku do dzisiaj
+        val startDate = today.withDayOfYear(1)
+        
+        var checkDate = startDate
+        
+        while (!checkDate.isAfter(today)) {
+            val dateStr = checkDate.toString()
+            allDates.add(checkDate)
+            
+            // Czy lek powinien być zaplanowany na ten dzień
+            val shouldBeScheduled = isScheduledForDate(checkDate, lek.czestotliwosc)
+            
+            if (shouldBeScheduled) {
+                // Pobierz aktualny status dla tej daty
+                val statusForDate = dateToMedicationStatus.getOrDefault(checkDate, Pair(0, 0))
+                
+                // Zwiększ liczbę zaplanowanych leków
+                val scheduledCount = statusForDate.first + 1
+                
+                // Sprawdź, czy lek został wzięty w tym dniu
+                val taken = lek.przyjecia[dateStr] == true
+                val takenCount = statusForDate.second + (if (taken) 1 else 0)
+                
+                // Aktualizuj status dla tej daty
+                dateToMedicationStatus[checkDate] = Pair(scheduledCount, takenCount)
+            }
+            
+            checkDate = checkDate.plusDays(1)
+        }
+    }
+    
+    // Funkcja pomocnicza do sprawdzenia czy wszystkie zaplanowane leki na dany dzień zostały wzięte
+    fun areAllMedicationsTaken(date: LocalDate): Boolean {
+        val status = dateToMedicationStatus[date] ?: return false
+        return status.first > 0 && status.first == status.second
+    }
+    
+    // Oblicz aktualną serię
+    var currentStreak = 0
+    var checkDate = today
+    
+    while (true) {
+        if (areAllMedicationsTaken(checkDate)) {
+            currentStreak++ 
+            checkDate = checkDate.minusDays(1)
+        } else {
+            break
+        }
+    }
+    
+    // Oblicz najdłuższą serię
+    var longestStreak = 0
+    var currentLongestStreak = 0
+    var prevDate: LocalDate? = null
+    
+    for (date in allDates.sortedBy { it }) {
+        if (areAllMedicationsTaken(date)) {
+            if (prevDate == null || ChronoUnit.DAYS.between(prevDate, date) == 1L) {
+                currentLongestStreak++
+            } else {
+                currentLongestStreak = 1
+            }
+            
+            longestStreak = maxOf(longestStreak, currentLongestStreak)
+            prevDate = date
+        } else {
+            currentLongestStreak = 0
+            prevDate = null
+        }
+    }
+    
+    // Oblicz tygodniową skuteczność
+    var takenDays = 0
+    var totalDays = 0
+    
+    for (i in 0..6) {
+        val date = today.minusDays(i.toLong())
+        val status = dateToMedicationStatus[date]
+        
+        if (status != null && status.first > 0) {
+            totalDays++
+            if (status.first == status.second) {
+                takenDays++
+            }
+        }
+    }
+    
+    val lastWeekAdherence = if (totalDays > 0) takenDays.toFloat() / totalDays else 0f
+    
+    return Triple(currentStreak, longestStreak, lastWeekAdherence)
 }
 
 @OptIn(
@@ -133,41 +241,6 @@ fun HomeScreen(
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
-                
-                // Tabs to switch between pages
-                TabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Tab(
-                        selected = pagerState.currentPage == 0,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(0)
-                            }
-                        },
-                        text = { Text(stringResource(R.string.tab_medicines)) }
-                    )
-                    Tab(
-                        selected = pagerState.currentPage == 1,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(1)
-                            }
-                        },
-                        text = { Text(stringResource(R.string.tab_calendar)) }
-                    )
-                    Tab(
-                        selected = pagerState.currentPage == 2,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(2)
-                            }
-                        },
-                        text = { Text(stringResource(R.string.tab_streaks)) }
-                    )
-                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -560,7 +633,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            )
+                            }
                             
                             // Motivational message based on streak
                             Card(
@@ -611,7 +684,7 @@ fun HomeScreen(
             }
         }
     }
-
+    
     // Dialog do dodawania zapasu leku
     if (showSupplyDialog && selectedLek != null) {
         AlertDialog(
@@ -684,112 +757,4 @@ fun HomeScreen(
             }
         )
     }
-}
-
-// Zmodyfikowana funkcja calculateStreakInfo
-fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
-    if (leki.isEmpty()) {
-        return Triple(0, 0, 0f)
-    }
-    
-    val today = LocalDate.now()
-    val formatter = DateTimeFormatter.ISO_LOCAL_DATE
-    
-    // Dla każdego dnia przechowujemy mapę: data -> (zaplanowane leki, wzięte leki)
-    val dateToMedicationStatus = mutableMapOf<LocalDate, Pair<Int, Int>>()
-    
-    // Sprawdzamy wszystkie leki i wszystkie daty
-    val allDates = mutableSetOf<LocalDate>()
-    
-    // Zbieramy informacje o wszystkich lekach dla wszystkich dat
-    for (lek in leki) {
-        // Sprawdzamy wszystkie daty od początku roku do dzisiaj
-        val startDate = today.withDayOfYear(1)
-        var checkDate = startDate
-        
-        while (!checkDate.isAfter(today)) {
-            val dateStr = checkDate.toString()
-            allDates.add(checkDate)
-            
-            // Czy lek powinien być zaplanowany na ten dzień
-            val shouldBeScheduled = isScheduledForDate(checkDate, lek.czestotliwosc)
-            
-            if (shouldBeScheduled) {
-                // Pobierz aktualny status dla tej daty
-                val statusForDate = dateToMedicationStatus.getOrDefault(checkDate, Pair(0, 0))
-                
-                // Zwiększ liczbę zaplanowanych leków
-                val scheduledCount = statusForDate.first + 1
-                
-                // Sprawdź, czy lek został wzięty w tym dniu
-                val taken = lek.przyjecia[dateStr] == true
-                val takenCount = statusForDate.second + (if (taken) 1 else 0)
-                
-                // Aktualizuj status dla tej daty
-                dateToMedicationStatus[checkDate] = Pair(scheduledCount, takenCount)
-            }
-            
-            checkDate = checkDate.plusDays(1)
-        }
-    }
-    
-    // Funkcja pomocnicza do sprawdzenia czy wszystkie zaplanowane leki na dany dzień zostały wzięte
-    fun areAllMedicationsTaken(date: LocalDate): Boolean {
-        val status = dateToMedicationStatus[date] ?: return false
-        return status.first > 0 && status.first == status.second
-    }
-    
-    // Oblicz aktualną serię
-    var currentStreak = 0
-    var checkDate = today
-    
-    while (true) {
-        if (areAllMedicationsTaken(checkDate)) {
-            currentStreak++ 
-            checkDate = checkDate.minusDays(1)
-        } else {
-            break
-        }
-    }
-    
-    // Oblicz najdłuższą serię
-    var longestStreak = 0
-    var currentLongestStreak = 0
-    var prevDate: LocalDate? = null
-    
-    for (date in allDates.sortedBy { it }) {
-        if (areAllMedicationsTaken(date)) {
-            if (prevDate == null || ChronoUnit.DAYS.between(prevDate, date) == 1L) {
-                currentLongestStreak++
-            } else {
-                currentLongestStreak = 1
-            }
-            
-            longestStreak = maxOf(longestStreak, currentLongestStreak)
-            prevDate = date
-        } else {
-            currentLongestStreak = 0
-            prevDate = null
-        }
-    }
-    
-    // Oblicz tygodniową skuteczność
-    var takenDays = 0
-    var totalDays = 0
-    
-    for (i in 0..6) {
-        val date = today.minusDays(i.toLong())
-        val status = dateToMedicationStatus[date]
-        
-        if (status != null && status.first > 0) {
-            totalDays++
-            if (status.first == status.second) {
-                takenDays++
-            }
-        }
-    }
-    
-    val lastWeekAdherence = if (totalDays > 0) takenDays.toFloat() / totalDays else 0f
-    
-    return Triple(currentStreak, longestStreak, lastWeekAdherence)
 }
