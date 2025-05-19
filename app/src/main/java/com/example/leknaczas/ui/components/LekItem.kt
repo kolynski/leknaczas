@@ -17,7 +17,7 @@ import com.example.leknaczas.model.Lek
 @Composable
 fun LekItem(
     lek: Lek,
-    onStatusChanged: (Lek) -> Unit,
+    onStatusChanged: ((Lek) -> Unit)?,
     onDelete: (Lek) -> Unit,
     onAddSupply: (Lek) -> Unit
 ) {
@@ -121,18 +121,22 @@ fun LekItem(
                         )
                     }
                     
-                    // Checkbox do oznaczania leku jako wzięty
-                    Checkbox(
-                        checked = lek.przyjety,
-                        onCheckedChange = { 
-                            if (lek.dostepneIlosc > 0 || !it) {
-                                onStatusChanged(lek)
-                            }
-                        },
-                        enabled = lek.dostepneIlosc > 0 || !lek.przyjety
-                    )
-                }
-            }
-        }
-    }
-}
+                    // Pokazuj checkbox tylko jeśli onStatusChanged nie jest null
+                    if (onStatusChanged != null) {
+                        Checkbox(
+                            checked = lek.przyjety,
+                            onCheckedChange = { 
+                                if (lek.dostepneIlosc > 0 || !it) {
+                                    onStatusChanged(lek)
+                                }
+                            },
+                            enabled = lek.dostepneIlosc > 0 || !lek.przyjety
+                        )       )
+                    }       }
+                }       }
+            }       }
+        }       }
+    }    }
+
+
+}}

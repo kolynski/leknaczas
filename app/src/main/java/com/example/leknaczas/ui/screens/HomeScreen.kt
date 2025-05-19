@@ -172,16 +172,18 @@ fun HomeScreen(
     val leki by lekViewModel.leki.collectAsStateWithLifecycle()
     val isLoading by lekViewModel.isLoading.collectAsStateWithLifecycle()
     
-    var nowyLekNazwa by remember { mutableStateOf("") }
-    var nowyLekCzestotliwosc by remember { mutableStateOf("1 x dziennie") }
-    var nowyLekIlosc by remember { mutableStateOf("1") }
-    var nowyLekJednostka by remember { mutableStateOf("tabletka") }
-    
     // Dodaj te zmienne stanu na początku funkcji HomeScreen
+    var showAddMedicationDialog by remember { mutableStateOf(false) }
     var showSupplyDialog by remember { mutableStateOf(false) }
     var selectedLek by remember { mutableStateOf<Lek?>(null) }
     var noweOpakowanie by remember { mutableStateOf("") }
     var iloscWSztukach by remember { mutableStateOf("") }
+    
+    // Zmienne dla dialogu dodawania leku
+    var nowyLekNazwa by remember { mutableStateOf("") }
+    var nowyLekCzestotliwosc by remember { mutableStateOf("1 x dziennie") }
+    var nowyLekIlosc by remember { mutableStateOf("1") }
+    var nowyLekJednostka by remember { mutableStateOf("tabletka") }
     
     // Opcje dla wybieranych wartości
     val czestotliwosciOptions = listOf("1 x dziennie", "2 x dziennie", "3 x dziennie", "co drugi dzień", "raz w tygodniu")
@@ -197,6 +199,9 @@ fun HomeScreen(
     
     // Tworzenie zakresu korutyny dla operacji asynchronicznych
     val coroutineScope = rememberCoroutineScope()
+    
+    // Nazwy zakładek
+    val tabTitles = listOf("Leki", "Kalendarz", "Statystyki")
     
     // Efekt uruchamiany przy pierwszym wyświetleniu tego ekranu
     LaunchedEffect(Unit) {
@@ -241,6 +246,41 @@ fun HomeScreen(
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
+                
+                // Dodanie zakładek na górze ekranu
+                TabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    tabTitles.forEachIndexed { index, title ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = { 
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            },
+                            text = { Text(title) },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        },
+        floatingActionButton = {
+            // Pokazuj przycisk dodawania leku tylko na stronie Kalendarza
+            if (pagerState.currentPage == 1) {
+                FloatingActionButton(
+                    onClick = { showAddMedicationDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Dodaj lek",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -270,165 +310,6 @@ fun HomeScreen(
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Formularz dodawania leku
-                            Card(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.add_medicine),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
-                                    
-                                    OutlinedTextField(
-                                        value = nowyLekNazwa,
-                                        onValueChange = { nowyLekNazwa = it },
-                                        label = { Text(stringResource(R.string.medicine_name)) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
-                                    )
-                                    
-                                    // Dropdown dla częstotliwości
-                                    ExposedDropdownMenuBox(
-                                        expanded = expandedCzestotliwosc,
-                                        onExpandedChange = { expandedCzestotliwosc = it },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = nowyLekCzestotliwosc,
-                                            onValueChange = {},
-                                            readOnly = true,
-                                            label = { Text(stringResource(R.string.medicine_frequency)) },
-                                            trailingIcon = {
-                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCzestotliwosc)
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor()
-                                        )
-                                        
-                                        ExposedDropdownMenu(
-                                            expanded = expandedCzestotliwosc,
-                                            onDismissRequest = { expandedCzestotliwosc = false }
-                                        ) {
-                                            czestotliwosciOptions.forEach { option ->
-                                                DropdownMenuItem(
-                                                    text = { Text(option) },
-                                                    onClick = {
-                                                        nowyLekCzestotliwosc = option
-                                                        expandedCzestotliwosc = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Row dla ilości i jednostki
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        // Dropdown dla ilości
-                                        ExposedDropdownMenuBox(
-                                            expanded = expandedIlosc,
-                                            onExpandedChange = { expandedIlosc = it },
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            OutlinedTextField(
-                                                value = nowyLekIlosc,
-                                                onValueChange = {},
-                                                readOnly = true,
-                                                label = { Text(stringResource(R.string.medicine_amount)) },
-                                                trailingIcon = {
-                                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedIlosc)
-                                                },
-                                                modifier = Modifier.menuAnchor()
-                                            )
-                                            
-                                            ExposedDropdownMenu(
-                                                expanded = expandedIlosc,
-                                                onDismissRequest = { expandedIlosc = false }
-                                            ) {
-                                                iloscOptions.forEach { option ->
-                                                    DropdownMenuItem(
-                                                        text = { Text(option) },
-                                                        onClick = {
-                                                            nowyLekIlosc = option
-                                                            expandedIlosc = false
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Dropdown dla jednostki
-                                        ExposedDropdownMenuBox(
-                                            expanded = expandedJednostka,
-                                            onExpandedChange = { expandedJednostka = it },
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            OutlinedTextField(
-                                                value = nowyLekJednostka,
-                                                onValueChange = {},
-                                                readOnly = true,
-                                                label = { Text(stringResource(R.string.medicine_unit)) },
-                                                trailingIcon = {
-                                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedJednostka)
-                                                },
-                                                modifier = Modifier.menuAnchor()
-                                            )
-                                            
-                                            ExposedDropdownMenu(
-                                                expanded = expandedJednostka,
-                                                onDismissRequest = { expandedJednostka = false }
-                                            ) {
-                                                jednostkaOptions.forEach { option ->
-                                                    DropdownMenuItem(
-                                                        text = { Text(option) },
-                                                        onClick = {
-                                                            nowyLekJednostka = option
-                                                            expandedJednostka = false
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    Button(
-                                        onClick = {
-                                            lekViewModel.dodajLek(
-                                                nazwa = nowyLekNazwa,
-                                                czestotliwosc = nowyLekCzestotliwosc,
-                                                ilosc = nowyLekIlosc,
-                                                jednostka = nowyLekJednostka
-                                            )
-                                            nowyLekNazwa = ""
-                                            nowyLekCzestotliwosc = "1 x dziennie"
-                                            nowyLekIlosc = "1"
-                                            nowyLekJednostka = "tabletka"
-                                        },
-                                        modifier = Modifier.align(Alignment.End),
-                                        enabled = nowyLekNazwa.isNotBlank()
-                                    ) {
-                                        Text(stringResource(R.string.add))
-                                    }
-                                }
-                            }
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
                             // Lista leków
                             Text(
                                 text = stringResource(R.string.medicine_list),
@@ -443,14 +324,14 @@ fun HomeScreen(
                                         .height(200.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Brak leków. Dodaj swój pierwszy lek.")
+                                    Text("Brak leków. Dodaj swój pierwszy lek w kalendarzu.")
                                 }
                             } else {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     leki.forEach { lek ->
                                         LekItem(
                                             lek = lek,
-                                            onStatusChanged = { lekViewModel.toggleLekStatus(lek) },
+                                            onStatusChanged = null, // Usunięto checkbox
                                             onDelete = { lekViewModel.usunLek(lek) },
                                             onAddSupply = { 
                                                 selectedLek = it
@@ -464,7 +345,7 @@ fun HomeScreen(
                             if (leki.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = stringResource(R.string.swipe_right_hint),
+                                    text = "Przejdź do kalendarza, aby przyjmować leki",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
@@ -520,20 +401,6 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(32.dp))
                             }
                             
-                            Spacer(modifier = Modifier.height(24.dp))
-                            
-                            // Updated hint to swipe in either direction
-                            Text(
-                                text = "Przesuń w lewo, aby zobaczyć statystyki, lub w prawo, aby wrócić do leków",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .padding(top = 16.dp, bottom = 8.dp)
-                                    .fillMaxWidth(),
-                                textAlign = TextAlign.Center
-                            )
-                            
-                            // Extra space at bottom to ensure scrolling works correctly
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
@@ -664,25 +531,183 @@ fun HomeScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(24.dp))
-                            
-                            Text(
-                                text = "Przesuń w prawo, aby wrócić do kalendarza",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .padding(top = 16.dp, bottom = 8.dp)
-                                    .fillMaxWidth(),
-                                textAlign = TextAlign.Center
-                            )
-                            
-                            // Extra space at bottom to ensure scrolling works correctly
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
             }
         }
+    }
+    
+    // Dialog do dodawania nowego leku
+    if (showAddMedicationDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showAddMedicationDialog = false
+                nowyLekNazwa = ""
+                nowyLekCzestotliwosc = "1 x dziennie"
+                nowyLekIlosc = "1"
+                nowyLekJednostka = "tabletka"
+            },
+            title = { Text("Dodaj nowy lek") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = nowyLekNazwa,
+                        onValueChange = { nowyLekNazwa = it },
+                        label = { Text(stringResource(R.string.medicine_name)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                    
+                    // Dropdown dla częstotliwości
+                    ExposedDropdownMenuBox(
+                        expanded = expandedCzestotliwosc,
+                        onExpandedChange = { expandedCzestotliwosc = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = nowyLekCzestotliwosc,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.medicine_frequency)) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCzestotliwosc)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = expandedCzestotliwosc,
+                            onDismissRequest = { expandedCzestotliwosc = false }
+                        ) {
+                            czestotliwosciOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        nowyLekCzestotliwosc = option
+                                        expandedCzestotliwosc = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Row dla ilości i jednostki
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Dropdown dla ilości
+                        ExposedDropdownMenuBox(
+                            expanded = expandedIlosc,
+                            onExpandedChange = { expandedIlosc = it },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = nowyLekIlosc,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(R.string.medicine_amount)) },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedIlosc)
+                                },
+                                modifier = Modifier.menuAnchor()
+                            )
+                            
+                            ExposedDropdownMenu(
+                                expanded = expandedIlosc,
+                                onDismissRequest = { expandedIlosc = false }
+                            ) {
+                                iloscOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            nowyLekIlosc = option
+                                            expandedIlosc = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Dropdown dla jednostki
+                        ExposedDropdownMenuBox(
+                            expanded = expandedJednostka,
+                            onExpandedChange = { expandedJednostka = it },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = nowyLekJednostka,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(R.string.medicine_unit)) },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedJednostka)
+                                },
+                                modifier = Modifier.menuAnchor()
+                            )
+                            
+                            ExposedDropdownMenu(
+                                expanded = expandedJednostka,
+                                onDismissRequest = { expandedJednostka = false }
+                            ) {
+                                jednostkaOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            nowyLekJednostka = option
+                                            expandedJednostka = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        lekViewModel.dodajLek(
+                            nazwa = nowyLekNazwa,
+                            czestotliwosc = nowyLekCzestotliwosc,
+                            ilosc = nowyLekIlosc,
+                            jednostka = nowyLekJednostka
+                        )
+                        
+                        showAddMedicationDialog = false
+                        nowyLekNazwa = ""
+                        nowyLekCzestotliwosc = "1 x dziennie"
+                        nowyLekIlosc = "1"
+                        nowyLekJednostka = "tabletka"
+                    },
+                    enabled = nowyLekNazwa.isNotBlank()
+                ) {
+                    Text(stringResource(R.string.add))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showAddMedicationDialog = false
+                        nowyLekNazwa = ""
+                        nowyLekCzestotliwosc = "1 x dziennie"
+                        nowyLekIlosc = "1"
+                        nowyLekJednostka = "tabletka"
+                    }
+                ) {
+                    Text("Anuluj")
+                }
+            }
+        )
     }
     
     // Dialog do dodawania zapasu leku
