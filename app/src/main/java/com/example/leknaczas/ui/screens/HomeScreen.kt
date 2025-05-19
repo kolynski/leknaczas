@@ -560,7 +560,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
+                            )
                             
                             // Motivational message based on streak
                             Card(
@@ -792,14 +792,4 @@ fun calculateStreakInfo(leki: List<Lek>): Triple<Int, Int, Float> {
     val lastWeekAdherence = if (totalDays > 0) takenDays.toFloat() / totalDays else 0f
     
     return Triple(currentStreak, longestStreak, lastWeekAdherence)
-}
-
-// Funkcja pomocnicza do sprawdzenia, czy lek powinien być zaplanowany na określony dzień
-private fun isScheduledForDate(date: LocalDate, frequency: String): Boolean {
-    return when (frequency) {
-        "1 x dziennie", "2 x dziennie", "3 x dziennie" -> true
-        "co drugi dzień" -> ChronoUnit.DAYS.between(LocalDate.of(date.year, 1, 1), date) % 2 == 0L
-        "raz w tygodniu" -> date.dayOfWeek == DayOfWeek.MONDAY
-        else -> true
-    }
 }
