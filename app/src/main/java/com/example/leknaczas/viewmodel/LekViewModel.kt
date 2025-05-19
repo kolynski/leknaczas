@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.leknaczas.model.Lek
 import com.example.leknaczas.notification.MedicationScheduler
+import com.example.leknaczas.notification.NotificationService
 import com.example.leknaczas.repository.LekRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
