@@ -266,10 +266,9 @@ class LekRepository : ILekRepository {
             userLekiCollection?.document(lekId)?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error updating medication supply", e)
-        }
-    }
+        }    }
 
-    suspend fun updateLekSupplyAndStatus(lekId: String, nowaIlosc: Int, dataWziecia: String) {
+    override suspend fun updateLekSupplyAndStatus(lekId: String, nowaIlosc: Int, dataWziecia: String) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return
         }
@@ -288,28 +287,13 @@ class LekRepository : ILekRepository {
                 updates["_dataWziecia"] = ""
             }
             
-            Log.d("LekRepository", "Aktualizacja leku $lekId: ilość=$nowaIlosc, data=$dataWziecia")
+                    Log.d("LekRepository", "Aktualizacja leku $lekId: ilość=$nowaIlosc, data=$dataWziecia")
             userLekiCollection?.document(lekId)?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error updating medication supply and status", e)
         }
     }
 
-    // Dodaj nową metodę do interfejsu LekRepositoryInterface
-    interface LekRepositoryInterface {
-        // ...existing methods...
-        
-        suspend fun addLek(
-            nazwa: String, 
-            czestotliwosc: String, 
-            ilosc: String, 
-            jednostka: String,
-            dataWaznosci: String = "",
-            producent: String = ""
-        ): String
-    }
-
-    // W implementacji LekRepository dodaj:
     override suspend fun addLek(
         nazwa: String, 
         czestotliwosc: String, 
@@ -350,6 +334,22 @@ class LekRepository : ILekRepository {
         } catch (e: Exception) {
             Log.e("LekRepository", "Error adding lek", e)
             ""
+        }
+    }    override suspend fun addSupply(lekId: String, dodanaIlosc: Int) {
+        try {
+            if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+                return
+            }
+
+            userLekiCollection?.document(lekId)?.get()?.await()?.let { document ->
+                val aktualnaIlosc = document.getLong("dostepneIlosc")?.toInt() ?: 0
+                val nowaIlosc = aktualnaIlosc + dodanaIlosc
+                
+                userLekiCollection?.document(lekId)?.update("dostepneIlosc", nowaIlosc)?.await()
+                Log.d("LekRepository", "Dodano zapas $dodanaIlosc, nowa ilość: $nowaIlosc")
+            }
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error adding supply", e)
         }
     }
 }
