@@ -110,6 +110,7 @@ class LekRepository : ILekRepository {
         }
     }
 
+    // GŁÓWNA METODA - TYLKO JEDNA WERSJA!
     override suspend fun addLek(nazwa: String, czestotliwosc: String, ilosc: String, jednostka: String): String {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return ""
@@ -133,7 +134,8 @@ class LekRepository : ILekRepository {
             jednostka = jednostka,
             _przyjety = false,
             dostepneIlosc = 0,
-            iloscNaDawke = iloscNaDawke
+            iloscNaDawke = iloscNaDawke,
+            dataWaznosci = "" // Początkowo pusta, zostanie ustawiona przy dodawaniu zapasu
         )
         
         return try {
@@ -266,7 +268,8 @@ class LekRepository : ILekRepository {
             userLekiCollection?.document(lekId)?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error updating medication supply", e)
-        }    }
+        }
+    }
 
     override suspend fun updateLekSupplyAndStatus(lekId: String, nowaIlosc: Int, dataWziecia: String) {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
@@ -287,52 +290,14 @@ class LekRepository : ILekRepository {
                 updates["_dataWziecia"] = ""
             }
             
-                    Log.d("LekRepository", "Aktualizacja leku $lekId: ilość=$nowaIlosc, data=$dataWziecia")
+            Log.d("LekRepository", "Aktualizacja leku $lekId: ilość=$nowaIlosc, data=$dataWziecia")
             userLekiCollection?.document(lekId)?.update(updates)?.await()
         } catch (e: Exception) {
             Log.e("LekRepository", "Error updating medication supply and status", e)
         }
     }
 
-    override suspend fun addLek(
-        nazwa: String, 
-        czestotliwosc: String, 
-        ilosc: String, 
-        jednostka: String
-    ): String {
-        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
-            return ""
-        }
-
-        val iloscNaDawke = try {
-            when (ilosc) {
-                "1/2" -> 0.5f
-                "1/4" -> 0.25f
-                else -> ilosc.toFloatOrNull() ?: 1.0f
-            }
-        } catch (e: Exception) {
-            1.0f
-        }
-
-        val lek = Lek(
-            id = "", 
-            nazwa = nazwa,
-            czestotliwosc = czestotliwosc, 
-            ilosc = ilosc,
-            jednostka = jednostka,
-            _przyjety = false,
-            dostepneIlosc = 0,
-            iloscNaDawke = iloscNaDawke,
-            dataWaznosci = "" // Początkowo pusta, zostanie ustawiona przy dodawaniu zapasu
-        )
-        
-        return try {
-            userLekiCollection?.add(lek)?.await()?.id ?: ""
-        } catch (e: Exception) {
-            Log.e("LekRepository", "Error adding lek", e)
-            ""
-        }
-    }    override suspend fun addSupply(lekId: String, dodanaIlosc: Int) {
+    override suspend fun addSupply(lekId: String, dodanaIlosc: Int) {
         try {
             if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
                 return
@@ -350,8 +315,8 @@ class LekRepository : ILekRepository {
         }
     }
 
-    // Nowa metoda do dodawania zapasu z datą ważności
-    suspend fun addSupplyWithExpiryDate(lekId: String, dodanaIlosc: Int, dataWaznosci: String) {
+    // DODAJ OVERRIDE!
+    override suspend fun addSupplyWithExpiryDate(lekId: String, dodanaIlosc: Int, dataWaznosci: String) {
         try {
             if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
                 return
