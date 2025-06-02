@@ -55,14 +55,12 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
         nazwa: String, 
         czestotliwosc: String, 
         ilosc: String, 
-        jednostka: String,
-        dataWaznosci: String = "",
-        producent: String = ""
+        jednostka: String
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            Log.d("LekViewModel", "Dodaję lek: $nazwa, $czestotliwosc, $ilosc, $jednostka, ważność: $dataWaznosci, producent: $producent")
-            val lekId = lekRepository.addLek(nazwa, czestotliwosc, ilosc, jednostka, dataWaznosci, producent)
+            Log.d("LekViewModel", "Dodaję lek: $nazwa, $czestotliwosc, $ilosc, $jednostka")
+            val lekId = lekRepository.addLek(nazwa, czestotliwosc, ilosc, jednostka)
             Log.d("LekViewModel", "Utworzono lek z ID: $lekId")
             
             // If the medication was added successfully, schedule a notification
@@ -81,6 +79,18 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
             // Odświeżamy listę leków, aby zobaczyć nowo dodany lek
             refreshLeki()
             _isLoading.value = false
+        }
+    }
+    
+    // Nowa metoda do dodawania zapasu z datą ważności
+    fun dodajZapasZDataWaznosci(lek: Lek, iloscDoRozenia: Int, dataWaznosci: String) {
+        viewModelScope.launch {
+            Log.d("LekViewModel", "Dodawanie zapasu dla ${lek.nazwa}: +$iloscDoRozenia z datą ważności: $dataWaznosci")
+            lekRepository.addSupplyWithExpiryDate(lek.id, iloscDoRozenia, dataWaznosci)
+            
+            // Odświeżamy listę leków po dodaniu zapasu
+            delay(500)
+            refreshLeki()
         }
     }
     

@@ -298,9 +298,7 @@ class LekRepository : ILekRepository {
         nazwa: String, 
         czestotliwosc: String, 
         ilosc: String, 
-        jednostka: String,
-        dataWaznosci: String,
-        producent: String
+        jednostka: String
     ): String {
         if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
             return ""
@@ -325,8 +323,7 @@ class LekRepository : ILekRepository {
             _przyjety = false,
             dostepneIlosc = 0,
             iloscNaDawke = iloscNaDawke,
-            dataWaznosci = dataWaznosci,
-            producent = producent
+            dataWaznosci = "" // Początkowo pusta, zostanie ustawiona przy dodawaniu zapasu
         )
         
         return try {
@@ -350,6 +347,30 @@ class LekRepository : ILekRepository {
             }
         } catch (e: Exception) {
             Log.e("LekRepository", "Error adding supply", e)
+        }
+    }
+
+    // Nowa metoda do dodawania zapasu z datą ważności
+    suspend fun addSupplyWithExpiryDate(lekId: String, dodanaIlosc: Int, dataWaznosci: String) {
+        try {
+            if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+                return
+            }
+            
+            userLekiCollection?.document(lekId)?.get()?.await()?.let { document ->
+                val aktualnaIlosc = document.getLong("dostepneIlosc")?.toInt() ?: 0
+                val nowaIlosc = aktualnaIlosc + dodanaIlosc
+                
+                val updates = hashMapOf<String, Any>(
+                    "dostepneIlosc" to nowaIlosc,
+                    "dataWaznosci" to dataWaznosci
+                )
+                
+                userLekiCollection?.document(lekId)?.update(updates)?.await()
+                Log.d("LekRepository", "Dodano zapas $dodanaIlosc z datą ważności $dataWaznosci, nowa ilość: $nowaIlosc")
+            }
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error adding supply with expiry date", e)
         }
     }
 }

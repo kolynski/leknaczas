@@ -191,10 +191,14 @@ fun HomeScreen(
     var nowyLekIlosc by remember { mutableStateOf("1") }
     var nowyLekJednostka by remember { mutableStateOf("tabletka") }
     
-    // Nowe zmienne stanu dla daty ważności i producenta
-    var nowyLekDataWaznosci by remember { mutableStateOf("") }
-    var nowyLekProducent by remember { mutableStateOf("") }
-    var showDatePicker by remember { mutableStateOf(false) }
+    // Usuń zmienne związane z producentem i datą ważności z formularza dodawania
+    // var nowyLekDataWaznosci by remember { mutableStateOf("") }
+    // var nowyLekProducent by remember { mutableStateOf("") }
+    // var showDatePicker by remember { mutableStateOf(false) }
+    
+    // Dodaj zmienne dla dialogu dodawania zapasu z datą ważności
+    var zapasDataWaznosci by remember { mutableStateOf("") }
+    var showDatePickerInSupplyDialog by remember { mutableStateOf(false) }
     
     // Opcje dla wybieranych wartości
     val czestotliwosciOptions = listOf("1 x dziennie", "2 x dziennie", "3 x dziennie", "co drugi dzień", "raz w tygodniu")
@@ -366,21 +370,6 @@ fun HomeScreen(
                                         )
                                     )
                                     
-                                    // Producer field
-                                    OutlinedTextField(
-                                        value = nowyLekProducent,
-                                        onValueChange = { nowyLekProducent = it },
-                                        label = { Text("Producent/Marka (opcjonalne)") },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 12.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                        )
-                                    )
-                                    
                                     // Frequency dropdown
                                     ExposedDropdownMenuBox(
                                         expanded = expandedCzestotliwosc,
@@ -427,7 +416,7 @@ fun HomeScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 12.dp),
+                                            .padding(bottom = 16.dp),
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         // Amount dropdown
@@ -499,36 +488,6 @@ fun HomeScreen(
                                         }
                                     }
                                     
-                                    // Expiry date picker
-                                    OutlinedTextField(
-                                        value = if (nowyLekDataWaznosci.isNotEmpty()) {
-                                            try {
-                                                LocalDate.parse(nowyLekDataWaznosci).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-                                            } catch (e: Exception) {
-                                                nowyLekDataWaznosci
-                                            }
-                                        } else "",
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        label = { Text("Data ważności (opcjonalne)") },
-                                        trailingIcon = {
-                                            IconButton(onClick = { showDatePicker = true }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.DateRange,
-                                                    contentDescription = "Wybierz datę"
-                                                )
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 16.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                        )
-                                    )
-                                    
                                     // Add button with gradient
                                     ElevatedButton(
                                         onClick = {
@@ -536,17 +495,13 @@ fun HomeScreen(
                                                 nazwa = nowyLekNazwa,
                                                 czestotliwosc = nowyLekCzestotliwosc,
                                                 ilosc = nowyLekIlosc,
-                                                jednostka = nowyLekJednostka,
-                                                dataWaznosci = nowyLekDataWaznosci,
-                                                producent = nowyLekProducent
+                                                jednostka = nowyLekJednostka
                                             )
                                             // Reset form
                                             nowyLekNazwa = ""
                                             nowyLekCzestotliwosc = "1 x dziennie"
                                             nowyLekIlosc = "1"
                                             nowyLekJednostka = "tabletka"
-                                            nowyLekDataWaznosci = ""
-                                            nowyLekProducent = ""
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -799,6 +754,7 @@ fun HomeScreen(
                 selectedLek = null
                 noweOpakowanie = ""
                 iloscWSztukach = ""
+                zapasDataWaznosci = ""
             },
             title = { Text("Dodaj zapas leku") },
             text = {
@@ -812,7 +768,7 @@ fun HomeScreen(
                         value = noweOpakowanie,
                         onValueChange = { noweOpakowanie = it },
                         label = { Text("Liczba opakowań") },
-                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp)
@@ -821,11 +777,44 @@ fun HomeScreen(
                     OutlinedTextField(
                         value = iloscWSztukach,
                         onValueChange = { iloscWSztukach = it },
-                        label = { Text("Liczba sztuk w opakowaniu") },
-                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        label = { Text("Liczba ${selectedLek?.jednostka ?: "sztuk"} w opakowaniu") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp)
+                    )
+                    
+                    // Data ważności dla nowego zapasu
+                    OutlinedTextField(
+                        value = if (zapasDataWaznosci.isNotEmpty()) {
+                            try {
+                                LocalDate.parse(zapasDataWaznosci).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                            } catch (e: Exception) {
+                                zapasDataWaznosci
+                            }
+                        } else "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Data ważności opakowania") },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePickerInSupplyDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = "Wybierz datę"
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    
+                    Text(
+                        text = "Łączna ilość: ${(noweOpakowanie.toIntOrNull() ?: 0) * (iloscWSztukach.toIntOrNull() ?: 0)} ${selectedLek?.jednostka ?: "sztuk"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             },
@@ -835,16 +824,22 @@ fun HomeScreen(
                         val opakowanieCount = noweOpakowanie.toIntOrNull() ?: 0
                         val sztukiCount = iloscWSztukach.toIntOrNull() ?: 0
                         if (opakowanieCount > 0 && sztukiCount > 0 && selectedLek != null) {
-                            lekViewModel.dodajZapas(selectedLek!!, opakowanieCount * sztukiCount)
+                            lekViewModel.dodajZapasZDataWaznosci(
+                                selectedLek!!, 
+                                opakowanieCount * sztukiCount,
+                                zapasDataWaznosci
+                            )
                         }
                         showSupplyDialog = false
                         selectedLek = null
                         noweOpakowanie = ""
                         iloscWSztukach = ""
+                        zapasDataWaznosci = ""
                     },
                     enabled = noweOpakowanie.isNotEmpty() && iloscWSztukach.isNotEmpty() &&
                             (noweOpakowanie.toIntOrNull() ?: 0) > 0 &&
-                            (iloscWSztukach.toIntOrNull() ?: 0) > 0
+                            (iloscWSztukach.toIntOrNull() ?: 0) > 0 &&
+                            zapasDataWaznosci.isNotEmpty()
                 ) {
                     Text("Dodaj")
                 }
@@ -856,6 +851,7 @@ fun HomeScreen(
                         selectedLek = null
                         noweOpakowanie = ""
                         iloscWSztukach = ""
+                        zapasDataWaznosci = ""
                     }
                 ) {
                     Text("Anuluj")
@@ -863,13 +859,13 @@ fun HomeScreen(
             }
         )
     }
-    
-    // Date picker dialog
-    if (showDatePicker) {
+
+    // Date picker dialog dla zapasu
+    if (showDatePickerInSupplyDialog) {
         val datePickerState = rememberDatePickerState()
         
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showDatePickerInSupplyDialog = false },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -877,16 +873,16 @@ fun HomeScreen(
                             val selectedDate = Instant.ofEpochMilli(millis)
                                 .atZone(ZoneId.systemDefault())
                                 .toLocalDate()
-                            nowyLekDataWaznosci = selectedDate.toString()
+                            zapasDataWaznosci = selectedDate.toString()
                         }
-                        showDatePicker = false
+                        showDatePickerInSupplyDialog = false
                     }
                 ) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { showDatePickerInSupplyDialog = false }) {
                     Text("Anuluj")
                 }
             }
@@ -894,4 +890,6 @@ fun HomeScreen(
             DatePicker(state = datePickerState)
         }
     }
+    
+    // ...rest of existing code...
 }

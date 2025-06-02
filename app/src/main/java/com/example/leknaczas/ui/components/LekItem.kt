@@ -66,7 +66,7 @@ fun LekItem(
                     verticalAlignment = Alignment.Top
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        // Medicine name with gradient text effect
+                        // Medicine name
                         Text(
                             text = lek.nazwa,
                             style = MaterialTheme.typography.headlineSmall.copy(
@@ -74,27 +74,6 @@ fun LekItem(
                             ),
                             color = MaterialTheme.colorScheme.primary
                         )
-                        
-                        // Producer/Brand if available
-                        if (lek.producent.isNotEmpty()) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Business,
-                                    contentDescription = "Producent",
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = lek.producent,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                        }
                     }
                     
                     // Status indicators

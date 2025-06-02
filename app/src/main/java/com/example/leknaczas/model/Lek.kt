@@ -18,10 +18,8 @@ data class Lek(
     // Nowe pola do zarządzania ilością leku
     val dostepneIlosc: Int = 0,
     val iloscNaDawke: Float = 1.0f,
-    // Nowe pole - data ważności
-    val dataWaznosci: String = "",
-    // Nowe pole - producent/marka
-    val producent: String = ""
+    // Data ważności aktualnego zapasu
+    val dataWaznosci: String = ""
 ) {
     // Właściwości dostępowe zapewniające kompatybilność wsteczną
     val przyjety: Boolean
