@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Refresh
@@ -35,8 +36,10 @@ import com.example.leknaczas.viewmodel.AuthViewModel
 import com.example.leknaczas.viewmodel.LekViewModel
 import com.example.leknaczas.notification.NotificationService
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.DayOfWeek
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -184,6 +187,11 @@ fun HomeScreen(
     var nowyLekIlosc by remember { mutableStateOf("1") }
     var nowyLekJednostka by remember { mutableStateOf("tabletka") }
     
+    // Nowe zmienne stanu dla daty ważności i producenta
+    var nowyLekDataWaznosci by remember { mutableStateOf("") }
+    var nowyLekProducent by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
     // Opcje dla wybieranych wartości
     val czestotliwosciOptions = listOf("1 x dziennie", "2 x dziennie", "3 x dziennie", "co drugi dzień", "raz w tygodniu")
     val iloscOptions = listOf("1", "2", "3", "1/2", "1/4")
@@ -298,34 +306,84 @@ fun HomeScreen(
                             Card(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
+                                // W sekcji dodawania leku (Page 0), zamień istniejący formularz na:
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        text = stringResource(R.string.add_medicine),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
+                                    // Header with gradient background
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 16.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                                        )
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(
+                                                    brush = Brush.horizontalGradient(
+                                                        listOf(
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
+                                                        )
+                                                    )
+                                                )
+                                                .padding(20.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.add_medicine),
+                                                style = MaterialTheme.typography.headlineMedium.copy(
+                                                    fontWeight = FontWeight.Bold
+                                                ),
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
                                     
+                                    // Medicine name
                                     OutlinedTextField(
                                         value = nowyLekNazwa,
                                         onValueChange = { nowyLekNazwa = it },
                                         label = { Text(stringResource(R.string.medicine_name)) },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
+                                            .padding(bottom = 12.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                        )
                                     )
                                     
-                                    // Dropdown dla częstotliwości
+                                    // Producer field
+                                    OutlinedTextField(
+                                        value = nowyLekProducent,
+                                        onValueChange = { nowyLekProducent = it },
+                                        label = { Text("Producent/Marka (opcjonalne)") },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 12.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                    
+                                    // Frequency dropdown
                                     ExposedDropdownMenuBox(
                                         expanded = expandedCzestotliwosc,
                                         onExpandedChange = { expandedCzestotliwosc = it },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
+                                            .padding(bottom = 12.dp)
                                     ) {
                                         OutlinedTextField(
                                             value = nowyLekCzestotliwosc,
@@ -337,7 +395,12 @@ fun HomeScreen(
                                             },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .menuAnchor()
+                                                .menuAnchor(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                            )
                                         )
                                         
                                         ExposedDropdownMenu(
@@ -356,14 +419,14 @@ fun HomeScreen(
                                         }
                                     }
                                     
-                                    // Row dla ilości i jednostki
+                                    // Amount and unit in a row
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            .padding(bottom = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        // Dropdown dla ilości
+                                        // Amount dropdown
                                         ExposedDropdownMenuBox(
                                             expanded = expandedIlosc,
                                             onExpandedChange = { expandedIlosc = it },
@@ -377,7 +440,8 @@ fun HomeScreen(
                                                 trailingIcon = {
                                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedIlosc)
                                                 },
-                                                modifier = Modifier.menuAnchor()
+                                                modifier = Modifier.menuAnchor(),
+                                                shape = RoundedCornerShape(12.dp)
                                             )
                                             
                                             ExposedDropdownMenu(
@@ -396,7 +460,7 @@ fun HomeScreen(
                                             }
                                         }
                                         
-                                        // Dropdown dla jednostki
+                                        // Unit dropdown
                                         ExposedDropdownMenuBox(
                                             expanded = expandedJednostka,
                                             onExpandedChange = { expandedJednostka = it },
@@ -410,7 +474,8 @@ fun HomeScreen(
                                                 trailingIcon = {
                                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedJednostka)
                                                 },
-                                                modifier = Modifier.menuAnchor()
+                                                modifier = Modifier.menuAnchor(),
+                                                shape = RoundedCornerShape(12.dp)
                                             )
                                             
                                             ExposedDropdownMenu(
@@ -430,23 +495,78 @@ fun HomeScreen(
                                         }
                                     }
                                     
-                                    Button(
+                                    // Expiry date picker
+                                    OutlinedTextField(
+                                        value = if (nowyLekDataWaznosci.isNotEmpty()) {
+                                            try {
+                                                LocalDate.parse(nowyLekDataWaznosci).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                                            } catch (e: Exception) {
+                                                nowyLekDataWaznosci
+                                            }
+                                        } else "",
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Data ważności (opcjonalne)") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { showDatePicker = true }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.DateRange,
+                                                    contentDescription = "Wybierz datę"
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 16.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                    
+                                    // Add button with gradient
+                                    ElevatedButton(
                                         onClick = {
                                             lekViewModel.dodajLek(
                                                 nazwa = nowyLekNazwa,
                                                 czestotliwosc = nowyLekCzestotliwosc,
                                                 ilosc = nowyLekIlosc,
-                                                jednostka = nowyLekJednostka
+                                                jednostka = nowyLekJednostka,
+                                                dataWaznosci = nowyLekDataWaznosci,
+                                                producent = nowyLekProducent
                                             )
+                                            // Reset form
                                             nowyLekNazwa = ""
                                             nowyLekCzestotliwosc = "1 x dziennie"
                                             nowyLekIlosc = "1"
                                             nowyLekJednostka = "tabletka"
+                                            nowyLekDataWaznosci = ""
+                                            nowyLekProducent = ""
                                         },
-                                        modifier = Modifier.align(Alignment.End),
-                                        enabled = nowyLekNazwa.isNotBlank()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp),
+                                        enabled = nowyLekNazwa.isNotBlank(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = ButtonDefaults.elevatedButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = Color.White
+                                        ),
+                                        elevation = ButtonDefaults.elevatedButtonElevation(defaultElevation = 8.dp)
                                     ) {
-                                        Text(stringResource(R.string.add))
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = stringResource(R.string.add),
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
                                     }
                                 }
                             }
@@ -738,5 +858,36 @@ fun HomeScreen(
                 }
             }
         )
+    }
+    
+    // Date picker dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val selectedDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                            nowyLekDataWaznosci = selectedDate.toString()
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Anuluj")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 }

@@ -294,4 +294,62 @@ class LekRepository : ILekRepository {
             Log.e("LekRepository", "Error updating medication supply and status", e)
         }
     }
+
+    // Dodaj nową metodę do interfejsu LekRepositoryInterface
+    interface LekRepositoryInterface {
+        // ...existing methods...
+        
+        suspend fun addLek(
+            nazwa: String, 
+            czestotliwosc: String, 
+            ilosc: String, 
+            jednostka: String,
+            dataWaznosci: String = "",
+            producent: String = ""
+        ): String
+    }
+
+    // W implementacji LekRepository dodaj:
+    override suspend fun addLek(
+        nazwa: String, 
+        czestotliwosc: String, 
+        ilosc: String, 
+        jednostka: String,
+        dataWaznosci: String,
+        producent: String
+    ): String {
+        if (firestore == null || auth?.currentUser == null || userLekiCollection == null) {
+            return ""
+        }
+
+        val iloscNaDawke = try {
+            when (ilosc) {
+                "1/2" -> 0.5f
+                "1/4" -> 0.25f
+                else -> ilosc.toFloatOrNull() ?: 1.0f
+            }
+        } catch (e: Exception) {
+            1.0f
+        }
+
+        val lek = Lek(
+            id = "", 
+            nazwa = nazwa,
+            czestotliwosc = czestotliwosc, 
+            ilosc = ilosc,
+            jednostka = jednostka,
+            _przyjety = false,
+            dostepneIlosc = 0,
+            iloscNaDawke = iloscNaDawke,
+            dataWaznosci = dataWaznosci,
+            producent = producent
+        )
+        
+        return try {
+            userLekiCollection?.add(lek)?.await()?.id ?: ""
+        } catch (e: Exception) {
+            Log.e("LekRepository", "Error adding lek", e)
+            ""
+        }
+    }
 }

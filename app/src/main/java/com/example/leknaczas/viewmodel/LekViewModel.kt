@@ -51,11 +51,18 @@ class LekViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
-    fun dodajLek(nazwa: String, czestotliwosc: String, ilosc: String, jednostka: String) {
+    fun dodajLek(
+        nazwa: String, 
+        czestotliwosc: String, 
+        ilosc: String, 
+        jednostka: String,
+        dataWaznosci: String = "",
+        producent: String = ""
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
-            Log.d("LekViewModel", "Dodaję lek: $nazwa, $czestotliwosc, $ilosc, $jednostka")
-            val lekId = lekRepository.addLek(nazwa, czestotliwosc, ilosc, jednostka)
+            Log.d("LekViewModel", "Dodaję lek: $nazwa, $czestotliwosc, $ilosc, $jednostka, ważność: $dataWaznosci, producent: $producent")
+            val lekId = lekRepository.addLek(nazwa, czestotliwosc, ilosc, jednostka, dataWaznosci, producent)
             Log.d("LekViewModel", "Utworzono lek z ID: $lekId")
             
             // If the medication was added successfully, schedule a notification
