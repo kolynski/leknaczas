@@ -1,5 +1,9 @@
 package com.example.leknaczas.model
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+
 data class Lek(
     val id: String = "",
     val nazwa: String = "",
@@ -13,7 +17,11 @@ data class Lek(
     private var _dataWziecia: String = "",
     // Nowe pola do zarządzania ilością leku
     val dostepneIlosc: Int = 0,
-    val iloscNaDawke: Float = 1.0f
+    val iloscNaDawke: Float = 1.0f,
+    // Nowe pole - data ważności
+    val dataWaznosci: String = "",
+    // Nowe pole - producent/marka
+    val producent: String = ""
 ) {
     // Właściwości dostępowe zapewniające kompatybilność wsteczną
     val przyjety: Boolean
@@ -40,5 +48,50 @@ data class Lek(
     // Sprawdzanie, czy kończy się zapas leku (mniej niż 5 sztuk lub dawek)
     fun konczySieZapas(): Boolean {
         return dostepneIlosc <= 5
+    }
+    
+    // Sprawdzanie, czy lek się przeterminował
+    fun czyPrzeterminowany(): Boolean {
+        if (dataWaznosci.isEmpty()) return false
+        return try {
+            val dataWaznosciParsed = LocalDate.parse(dataWaznosci)
+            LocalDate.now().isAfter(dataWaznosciParsed)
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    // Sprawdzanie, czy lek kończy ważność (mniej niż 30 dni)
+    fun konczyWaznosc(): Boolean {
+        if (dataWaznosci.isEmpty()) return false
+        return try {
+            val dataWaznosciParsed = LocalDate.parse(dataWaznosci)
+            val dniDoWygasniecia = ChronoUnit.DAYS.between(LocalDate.now(), dataWaznosciParsed)
+            dniDoWygasniecia in 1..30
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    // Formatowanie daty ważności
+    fun dataWaznosciFormatted(): String {
+        if (dataWaznosci.isEmpty()) return ""
+        return try {
+            val date = LocalDate.parse(dataWaznosci)
+            date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+        } catch (e: Exception) {
+            dataWaznosci
+        }
+    }
+    
+    // Dni do wygaśnięcia
+    fun dniDoWygasniecia(): Long {
+        if (dataWaznosci.isEmpty()) return Long.MAX_VALUE
+        return try {
+            val dataWaznosciParsed = LocalDate.parse(dataWaznosci)
+            ChronoUnit.DAYS.between(LocalDate.now(), dataWaznosciParsed)
+        } catch (e: Exception) {
+            Long.MAX_VALUE
+        }
     }
 }
